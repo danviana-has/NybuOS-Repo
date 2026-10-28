@@ -1,0 +1,28 @@
+<Project Sdk="Cosmos.Sdk/3.0.95">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <VMMemory>512</VMMemory>
+    <VirtualBoxDisplayType>VBoxVGA</VirtualBoxDisplayType>
+  </PropertyGroup>
+
+  <!-- Core kernel packages -->
+  <ItemGroup>
+    <PackageReference Include="Cosmos.Kernel" Version="3.0.95" />
+    <PackageReference Include="Cosmos.Kernel.System" Version="3.0.95" />
+  </ItemGroup>
+
+  <!-- Explicit reference for Roslyn compile-time type resolution -->
+  <ItemGroup>
+    <Reference Include="Cosmos.Kernel.System">
+      <HintPath>$(UserProfile)\.nuget\packages\cosmos.kernel.system\3.0.95\runtimes\linux-x64\lib\net10.0\Cosmos.Kernel.System.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Cosmos.Kernel.HAL">
+      <HintPath>$(UserProfile)\.nuget\packages\cosmos.kernel.hal\3.0.95\runtimes\linux-x64\lib\net10.0\Cosmos.Kernel.HAL.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
