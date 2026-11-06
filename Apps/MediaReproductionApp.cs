@@ -52,7 +52,7 @@ public class MediaReproductionApp : Window
     private int _currentImageIndex = 0;
 
     public MediaReproductionApp(int id, int x, int y, VirtualFileSystem vfs)
-        : base(id, "Media Reproduction - NybuOS", x, y, 400, 290)
+        : base(id, "Media Reproduction - NybuOS", x, y, 760, 520)
     {
         Icon = IconResources.Media16;
         _vfs = vfs;
@@ -81,7 +81,7 @@ public class MediaReproductionApp : Window
                 foreach (var f in files)
                 {
                     string lower = f.ToLower();
-                    if ((lower.EndsWith(".bmp") || lower.EndsWith(".ico")) && !_availableImages.Contains(f))
+                    if ((lower.EndsWith(".bmp") || lower.EndsWith(".ico") || lower.EndsWith(".png") || lower.EndsWith(".jpg") || lower.EndsWith(".jpeg")) && !_availableImages.Contains(f))
                     {
                         _availableImages.Add(f);
                     }
@@ -157,6 +157,22 @@ public class MediaReproductionApp : Window
                     if (_loadedImage != null)
                     {
                         _imageInfo = $"{_loadedImage.Width}x{_loadedImage.Height} pixels (.BMP FAT32)";
+                    }
+                }
+                else if (item.ToLower().EndsWith(".png"))
+                {
+                    _loadedImage = PngDecoder.Decode(bytes, 256, 256) ?? PngDecoder.Decode(bytes);
+                    if (_loadedImage != null)
+                    {
+                        _imageInfo = $"{_loadedImage.Width}x{_loadedImage.Height} pixels (.PNG FAT32)";
+                    }
+                }
+                else if (item.ToLower().EndsWith(".jpg") || item.ToLower().EndsWith(".jpeg"))
+                {
+                    _loadedImage = JpgDecoder.Decode(bytes, 256, 256) ?? JpgDecoder.Decode(bytes);
+                    if (_loadedImage != null)
+                    {
+                        _imageInfo = $"{_loadedImage.Width}x{_loadedImage.Height} pixels (.JPG FAT32)";
                     }
                 }
             }

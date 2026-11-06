@@ -114,10 +114,10 @@ public class WindowManager
             _draggingWindow.X = mouseX - _dragOffsetX;
             _draggingWindow.Y = mouseY - _dragOffsetY;
 
-            // Clamping para não desaparecer da tela
+            // Clamping para não desaparecer da tela (não subir além da barra superior e não sumir sob o dock)
             if (_draggingWindow.X < -_draggingWindow.Width + 40) _draggingWindow.X = -_draggingWindow.Width + 40;
-            if (_draggingWindow.Y < 0) _draggingWindow.Y = 0;
-            if (_draggingWindow.Y > 600 - Taskbar.Height - 20) _draggingWindow.Y = 600 - Taskbar.Height - 20;
+            if (_draggingWindow.Y < Taskbar.TopBarHeight) _draggingWindow.Y = Taskbar.TopBarHeight;
+            if (_draggingWindow.Y > 1080 - Taskbar.DockHeight - 30) _draggingWindow.Y = 1080 - Taskbar.DockHeight - 30;
 
             return;
         }

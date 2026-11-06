@@ -25,7 +25,7 @@ public class SpreadsheetApp : Window
     private string _status = "Planilha Pronta";
 
     public SpreadsheetApp(int id, int x, int y, VirtualFileSystem vfs, WindowManager? wm = null)
-        : base(id, "Planilha NybuCalc - NybuOS", x, y, 380, 260)
+        : base(id, "Planilha NybuCalc - NybuOS", x, y, 780, 520)
     {
         Icon = IconResources.SpreadsheetIcon ?? IconResources.Spreadsheet16;
         _vfs = vfs;
@@ -112,42 +112,42 @@ public class SpreadsheetApp : Window
         // Fundo cinza Win95 / Modern Surface
         display.DrawFilledRectangle(cx, cy, cw, ch, Theme.Surface);
 
-        // Botões de comando: Novo, Salvar, Carregar, Limpar
-        display.DrawButton(cx + 4, cy + 3, 46, 20, "Novo", false);
-        display.DrawButton(cx + 54, cy + 3, 52, 20, "Salvar", false);
-        display.DrawButton(cx + 110, cy + 3, 64, 20, "Carregar", false);
-        display.DrawButton(cx + 178, cy + 3, 54, 20, "Limpar", false);
+        // Botões de comando: Novo, Salvar, Carregar, Limpar ampliados
+        display.DrawModernButton(cx + 6, cy + 5, 75, 28, "Novo", false);
+        display.DrawModernButton(cx + 86, cy + 5, 85, 28, "Salvar", false);
+        display.DrawModernButton(cx + 176, cy + 5, 95, 28, "Carregar", false);
+        display.DrawModernButton(cx + 276, cy + 5, 85, 28, "Limpar", false);
 
-        display.DrawString(cx + 240, cy + 7, System.IO.Path.GetFileName(_filePath), Theme.AccentColor);
+        display.DrawString(cx + 375, cy + 11, System.IO.Path.GetFileName(_filePath), Theme.AccentColor);
 
         // Barra de Fórmula/Edição (Sunken)
         char colLetter = (char)('A' + _selectedCol);
         string cellRef = $"[{colLetter}{_selectedRow + 1}] ";
-        int formulaY = cy + 27;
+        int formulaY = cy + 38;
 
-        display.DrawFilledRectangle(cx + 4, formulaY, cw - 8, 18, Color.White);
-        display.Draw3DBevel(cx + 4, formulaY, cw - 8, 18, true);
+        display.DrawFilledRectangle(cx + 6, formulaY, cw - 12, 22, Color.White);
+        display.Draw3DBevel(cx + 6, formulaY, cw - 12, 22, true);
 
         string currentVal = _cells[_selectedRow, _selectedCol] ?? "";
-        display.DrawString(cx + 8, formulaY + 3, cellRef + currentVal, Color.Black);
+        display.DrawString(cx + 10, formulaY + 4, cellRef + currentVal, Color.Black);
 
         // Tabela / Grid
-        int gridX = cx + 4;
-        int gridY = formulaY + 22;
-        int cellW = (cw - 32) / Cols;
-        int cellH = 18;
+        int gridX = cx + 6;
+        int gridY = formulaY + 28;
+        int cellW = (cw - 44) / Cols;
+        int cellH = 24;
 
         // Cabeçalho das Colunas (A, B, C, D)
-        display.DrawFilledRectangle(gridX, gridY, 24, cellH, Theme.Surface);
-        display.Draw3DBevel(gridX, gridY, 24, cellH, false);
+        display.DrawFilledRectangle(gridX, gridY, 32, cellH, Theme.Surface);
+        display.Draw3DBevel(gridX, gridY, 32, cellH, false);
 
         for (int c = 0; c < Cols; c++)
         {
-            int colX = gridX + 24 + (c * cellW);
+            int colX = gridX + 32 + (c * cellW);
             display.DrawFilledRectangle(colX, gridY, cellW, cellH, Theme.Surface);
             display.Draw3DBevel(colX, gridY, cellW, cellH, false);
             char letter = (char)('A' + c);
-            display.DrawString(colX + (cellW / 2) - 4, gridY + 3, letter.ToString(), Color.Black);
+            display.DrawString(colX + (cellW / 2) - 4, gridY + 4, letter.ToString(), Color.Black);
         }
 
         // Linhas de Células
@@ -156,13 +156,13 @@ public class SpreadsheetApp : Window
             int rowY = gridY + cellH + (r * cellH);
 
             // Cabeçalho da Linha (1, 2, 3...)
-            display.DrawFilledRectangle(gridX, rowY, 24, cellH, Theme.Surface);
-            display.Draw3DBevel(gridX, rowY, 24, cellH, false);
-            display.DrawString(gridX + 8, rowY + 3, (r + 1).ToString(), Color.Black);
+            display.DrawFilledRectangle(gridX, rowY, 32, cellH, Theme.Surface);
+            display.Draw3DBevel(gridX, rowY, 32, cellH, false);
+            display.DrawString(gridX + 10, rowY + 4, (r + 1).ToString(), Color.Black);
 
             for (int c = 0; c < Cols; c++)
             {
-                int colX = gridX + 24 + (c * cellW);
+                int colX = gridX + 32 + (c * cellW);
                 bool isSelected = (r == _selectedRow && c == _selectedCol);
 
                 Color bg = isSelected ? Theme.SelectionBg : Color.White;
@@ -192,7 +192,7 @@ public class SpreadsheetApp : Window
         int cy = ClientY;
 
         // Botão Novo
-        if (mouseX >= cx + 4 && mouseX <= cx + 50 && mouseY >= cy + 3 && mouseY <= cy + 23)
+        if (mouseX >= cx + 6 && mouseX <= cx + 81 && mouseY >= cy + 5 && mouseY <= cy + 33)
         {
             InitializeDefaultData();
             _filePath = @"C:\Documents\nova_planilha.csv";
@@ -201,7 +201,7 @@ public class SpreadsheetApp : Window
         }
 
         // Botão Salvar (Abre Diálogo Salvar com Escolha de Nome)
-        if (mouseX >= cx + 54 && mouseX <= cx + 106 && mouseY >= cy + 3 && mouseY <= cy + 23)
+        if (mouseX >= cx + 86 && mouseX <= cx + 171 && mouseY >= cy + 5 && mouseY <= cy + 33)
         {
             if (_windowManager != null)
             {
@@ -219,7 +219,7 @@ public class SpreadsheetApp : Window
         }
 
         // Botão Carregar (Abre Diálogo Carregar com Duplo Clique)
-        if (mouseX >= cx + 110 && mouseX <= cx + 174 && mouseY >= cy + 3 && mouseY <= cy + 23)
+        if (mouseX >= cx + 176 && mouseX <= cx + 271 && mouseY >= cy + 5 && mouseY <= cy + 33)
         {
             if (_windowManager != null)
             {
@@ -237,7 +237,7 @@ public class SpreadsheetApp : Window
         }
 
         // Botão Limpar
-        if (mouseX >= cx + 178 && mouseX <= cx + 232 && mouseY >= cy + 3 && mouseY <= cy + 23)
+        if (mouseX >= cx + 276 && mouseX <= cx + 361 && mouseY >= cy + 5 && mouseY <= cy + 33)
         {
             for (int r = 0; r < Rows; r++)
                 for (int c = 0; c < Cols; c++)
@@ -247,16 +247,16 @@ public class SpreadsheetApp : Window
         }
 
         // Clique no Grid
-        int gridX = cx + 4;
-        int formulaY = cy + 27;
-        int gridY = formulaY + 22;
-        int cellW = (ClientWidth - 32) / Cols;
-        int cellH = 18;
+        int gridX = cx + 6;
+        int formulaY = cy + 38;
+        int gridY = formulaY + 28;
+        int cellW = (ClientWidth - 44) / Cols;
+        int cellH = 24;
 
-        if (mouseX >= gridX + 24 && mouseX <= gridX + 24 + (Cols * cellW) &&
+        if (mouseX >= gridX + 32 && mouseX <= gridX + 32 + (Cols * cellW) &&
             mouseY >= gridY + cellH && mouseY <= gridY + cellH + (Rows * cellH))
         {
-            int c = (mouseX - (gridX + 24)) / cellW;
+            int c = (mouseX - (gridX + 32)) / cellW;
             int r = (mouseY - (gridY + cellH)) / cellH;
 
             if (r >= 0 && r < Rows && c >= 0 && c < Cols)

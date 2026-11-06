@@ -31,7 +31,7 @@ public class ControlPanelApp : Window
     private bool _soundEnabled = true;
 
     public ControlPanelApp(int id, int x, int y, DisplayDriver displayDriver)
-        : base(id, "Configuracoes do Sistema", x, y, 480, 390)
+        : base(id, "Configuracoes do Sistema", x, y, 680, 520)
     {
         Icon = IconResources.ControlPanel16;
         _displayDriver = displayDriver;
@@ -68,58 +68,60 @@ public class ControlPanelApp : Window
         display.DrawString(cx + 16, sec1Y, "Cor de Destaque das Janelas e Botoes:", Theme.TextPrimary);
 
         int cols = 4;
-        int boxW = 100;
-        int boxH = 34;
+        int boxW = 145;
+        int boxH = 40;
 
         for (int i = 0; i < _accentColors.Length; i++)
         {
             int col = i % cols;
             int row = i / cols;
-            int bx = cx + 16 + (col * (boxW + 12));
-            int by = sec1Y + 28 + (row * (boxH + 10));
+            int bx = cx + 18 + (col * (boxW + 18));
+            int by = sec1Y + 32 + (row * (boxH + 12));
 
             Color itemColor = _accentColors[i].Color;
             bool isSelected = (i == _selectedColorIndex);
 
-            // Retângulo preenchido de cor
+            // Retângulo preenchido de cor com cantos arredondados
             display.DrawFilledRectangle(bx, by, boxW, boxH, itemColor);
 
             if (isSelected)
             {
-                display.DrawRectangle(bx - 2, by - 2, boxW + 4, boxH + 4, Color.White);
-                display.DrawRectangle(bx - 1, by - 1, boxW + 2, boxH + 2, Color.Black);
+                display.DrawRectangle(bx - 3, by - 3, boxW + 6, boxH + 6, Theme.AccentColor);
+                display.DrawRectangle(bx - 1, by - 1, boxW + 2, boxH + 2, Color.FromArgb(40, 45, 55));
             }
             else
             {
-                display.DrawRectangle(bx, by, boxW, boxH, Color.FromArgb(50, 50, 60));
+                display.DrawRectangle(bx, by, boxW, boxH, Theme.ShadowBorder);
             }
 
-            // Nome da cor centralizado
+            // Nome da cor centralizado (texto dinâmico para legibilidade perfeita)
             string name = _accentColors[i].Name;
-            int nameX = bx + Math.Max(4, (boxW - (name.Length * 8)) / 2);
-            int nameY = by + (boxH - 14) / 2;
-            display.DrawString(nameX, nameY, name, Color.White);
+            int nameX = bx + Math.Max(4, (boxW - (name.Length * CosmosNativeFont.Width)) / 2);
+            int nameY = by + (boxH - CosmosNativeFont.Height) / 2;
+            int luminance = (itemColor.R * 299 + itemColor.G * 587 + itemColor.B * 114) / 1000;
+            Color textCol = luminance > 160 ? Color.FromArgb(20, 24, 30) : Color.White;
+            display.DrawString(nameX, nameY, name, textCol);
         }
 
         // ==========================================
         // SEÇÃO 2: BRILHO DA TELA
         // ==========================================
-        int sec2Y = sec1Y + 130;
-        display.DrawLine(cx + 16, sec2Y, cx + cw - 16, sec2Y, Theme.WindowBorderInactive);
+        int sec2Y = sec1Y + 155;
+        display.DrawLine(cx + 18, sec2Y, cx + cw - 18, sec2Y, Theme.WindowBorderInactive);
 
-        display.DrawString(cx + 16, sec2Y + 16, $"Brilho da Tela: {_brightnessPercent}%", Theme.TextPrimary);
+        display.DrawString(cx + 18, sec2Y + 18, $"Brilho da Tela: {_brightnessPercent}%", Theme.TextPrimary);
 
-        int btnMinusX = cx + 240;
-        int btnPlusX = cx + 310;
-        int btnBrightY = sec2Y + 12;
+        int btnMinusX = cx + 280;
+        int btnPlusX = cx + 360;
+        int btnBrightY = sec2Y + 14;
 
-        display.DrawModernButton(btnMinusX, btnBrightY, 50, 26, " - ", false);
-        display.DrawModernButton(btnPlusX, btnBrightY, 50, 26, " + ", false);
+        display.DrawModernButton(btnMinusX, btnBrightY, 65, 32, " - ", false);
+        display.DrawModernButton(btnPlusX, btnBrightY, 65, 32, " + ", false);
 
-        int barX = cx + 16;
-        int barY = sec2Y + 48;
-        int barW = cw - 32;
-        int barH = 12;
+        int barX = cx + 18;
+        int barY = sec2Y + 56;
+        int barW = cw - 36;
+        int barH = 14;
         display.DrawFilledRectangle(barX, barY, barW, barH, Theme.InputBg);
         display.DrawRectangle(barX, barY, barW, barH, Theme.ButtonBorder);
 
@@ -129,19 +131,19 @@ public class ControlPanelApp : Window
         // ==========================================
         // SEÇÃO 3: SOM DO SISTEMA OPERACIONAL
         // ==========================================
-        int sec3Y = sec2Y + 76;
-        display.DrawLine(cx + 16, sec3Y, cx + cw - 16, sec3Y, Theme.WindowBorderInactive);
+        int sec3Y = sec2Y + 86;
+        display.DrawLine(cx + 18, sec3Y, cx + cw - 18, sec3Y, Theme.WindowBorderInactive);
 
-        display.DrawString(cx + 16, sec3Y + 16, "Efeitos Sonoros:", Theme.TextPrimary);
+        display.DrawString(cx + 18, sec3Y + 18, "Efeitos Sonoros:", Theme.TextPrimary);
 
-        int soundBtnX = cx + 240;
-        int soundBtnY = sec3Y + 12;
+        int soundBtnX = cx + 280;
+        int soundBtnY = sec3Y + 14;
         string soundState = _soundEnabled ? " Ativado " : " Mudo ";
-        display.DrawModernButton(soundBtnX, soundBtnY, 120, 28, soundState, _soundEnabled);
+        display.DrawModernButton(soundBtnX, soundBtnY, 145, 32, soundState, _soundEnabled);
 
         // Rodapé
-        int footerY = ch - 24;
-        display.DrawString(cx + 16, cy + footerY, "As alteracoes sao aplicadas instantaneamente no sistema.", Theme.TextMuted);
+        int footerY = ch - 26;
+        display.DrawString(cx + 18, cy + footerY, "As alteracoes sao aplicadas instantaneamente no sistema.", Theme.TextMuted);
     }
 
     public override void OnMouseDown(int mouseX, int mouseY)
@@ -151,15 +153,15 @@ public class ControlPanelApp : Window
 
         int sec1Y = cy + 14;
         int cols = 4;
-        int boxW = 100;
-        int boxH = 34;
+        int boxW = 145;
+        int boxH = 40;
 
         for (int i = 0; i < _accentColors.Length; i++)
         {
             int col = i % cols;
             int row = i / cols;
-            int bx = cx + 16 + (col * (boxW + 12));
-            int by = sec1Y + 28 + (row * (boxH + 10));
+            int bx = cx + 18 + (col * (boxW + 18));
+            int by = sec1Y + 32 + (row * (boxH + 12));
 
             if (mouseX >= bx && mouseX <= bx + boxW && mouseY >= by && mouseY <= by + boxH)
             {
@@ -169,14 +171,14 @@ public class ControlPanelApp : Window
             }
         }
 
-        int sec2Y = sec1Y + 130;
-        int btnMinusX = cx + 240;
-        int btnPlusX = cx + 310;
-        int btnBrightY = sec2Y + 12;
+        int sec2Y = sec1Y + 155;
+        int btnMinusX = cx + 280;
+        int btnPlusX = cx + 360;
+        int btnBrightY = sec2Y + 14;
 
-        if (mouseY >= btnBrightY && mouseY <= btnBrightY + 26)
+        if (mouseY >= btnBrightY && mouseY <= btnBrightY + 32)
         {
-            if (mouseX >= btnMinusX && mouseX <= btnMinusX + 50)
+            if (mouseX >= btnMinusX && mouseX <= btnMinusX + 65)
             {
                 _brightnessPercent = Math.Max(30, _brightnessPercent - 10);
                 if (_displayDriver != null)
@@ -185,7 +187,7 @@ public class ControlPanelApp : Window
                 }
                 return;
             }
-            if (mouseX >= btnPlusX && mouseX <= btnPlusX + 50)
+            if (mouseX >= btnPlusX && mouseX <= btnPlusX + 65)
             {
                 _brightnessPercent = Math.Min(150, _brightnessPercent + 10);
                 if (_displayDriver != null)
@@ -196,11 +198,11 @@ public class ControlPanelApp : Window
             }
         }
 
-        int sec3Y = sec2Y + 76;
-        int soundBtnX = cx + 240;
-        int soundBtnY = sec3Y + 12;
+        int sec3Y = sec2Y + 86;
+        int soundBtnX = cx + 280;
+        int soundBtnY = sec3Y + 14;
 
-        if (mouseX >= soundBtnX && mouseX <= soundBtnX + 120 && mouseY >= soundBtnY && mouseY <= soundBtnY + 28)
+        if (mouseX >= soundBtnX && mouseX <= soundBtnX + 145 && mouseY >= soundBtnY && mouseY <= soundBtnY + 32)
         {
             _soundEnabled = !_soundEnabled;
             SoundDriver.IsEnabled = _soundEnabled;

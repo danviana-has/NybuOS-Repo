@@ -15,8 +15,8 @@ namespace NybuOS.Apps;
 public class PaintPadApp : Window
 {
     private readonly VirtualFileSystem _vfs;
-    public const int CanvasW = 260;
-    public const int CanvasH = 160;
+    public const int CanvasW = 680;
+    public const int CanvasH = 400;
 
     public enum DrawTool
     {
@@ -61,7 +61,7 @@ public class PaintPadApp : Window
     };
 
     public PaintPadApp(int id, int x, int y, VirtualFileSystem vfs)
-        : base(id, "PaintPad - NybuOS", x, y, 370, 280)
+        : base(id, "PaintPad - NybuOS", x, y, 820, 560)
     {
         Icon = IconResources.PaintPadIcon ?? IconResources.PaintPad16;
         _vfs = vfs;
@@ -89,19 +89,19 @@ public class PaintPadApp : Window
         // Fundo da área de cliente
         display.DrawFilledRectangle(cx, cy, cw, ch, Theme.Surface);
 
-        // Barra de Ferramentas Superior com suporte a Reta
-        display.DrawButton(cx + 4, cy + 3, 44, 20, "Pincel", _currentTool == DrawTool.Brush);
-        display.DrawButton(cx + 50, cy + 3, 42, 20, "Reta", _currentTool == DrawTool.Line);
-        display.DrawButton(cx + 94, cy + 3, 50, 20, "Borracha", _currentTool == DrawTool.Eraser);
-        display.DrawButton(cx + 146, cy + 3, 34, 20, "1px", _brushSize == 1);
-        display.DrawButton(cx + 182, cy + 3, 34, 20, "2px", _brushSize == 2);
-        display.DrawButton(cx + 218, cy + 3, 34, 20, "4px", _brushSize == 4);
-        display.DrawButton(cx + 254, cy + 3, 48, 20, "Limpar", false);
-        display.DrawButton(cx + 304, cy + 3, 52, 20, "Salvar", false);
+        // Barra de Ferramentas Superior com suporte a Reta e botões ampliados
+        display.DrawModernButton(cx + 6, cy + 5, 70, 28, "Pincel", _currentTool == DrawTool.Brush);
+        display.DrawModernButton(cx + 80, cy + 5, 65, 28, "Reta", _currentTool == DrawTool.Line);
+        display.DrawModernButton(cx + 149, cy + 5, 80, 28, "Borracha", _currentTool == DrawTool.Eraser);
+        display.DrawModernButton(cx + 233, cy + 5, 50, 28, "1px", _brushSize == 1);
+        display.DrawModernButton(cx + 287, cy + 5, 50, 28, "2px", _brushSize == 2);
+        display.DrawModernButton(cx + 341, cy + 5, 50, 28, "4px", _brushSize == 4);
+        display.DrawModernButton(cx + 395, cy + 5, 75, 28, "Limpar", false);
+        display.DrawModernButton(cx + 474, cy + 5, 75, 28, "Salvar", false);
 
         // Tela de Pintura (Canvas com chanfrado 3D Sunken)
-        int canvasX = cx + 4;
-        int canvasY = cy + 26;
+        int canvasX = cx + 6;
+        int canvasY = cy + 38;
 
         // Borda chanfrada afundada ao redor do papel
         display.Draw3DBevel(canvasX - 2, canvasY - 2, CanvasW + 4, CanvasH + 4, true);
@@ -210,21 +210,21 @@ public class PaintPadApp : Window
         int cy = ClientY;
 
         // Botões da Barra de Ferramentas
-        if (mouseY >= cy + 3 && mouseY <= cy + 23)
+        if (mouseY >= cy + 5 && mouseY <= cy + 33)
         {
-            if (mouseX >= cx + 4 && mouseX <= cx + 48) { _currentTool = DrawTool.Brush; _status = "Ferramenta: Pincel"; return; }
-            if (mouseX >= cx + 50 && mouseX <= cx + 92) { _currentTool = DrawTool.Line; _status = "Ferramenta: Reta (Clique e arraste)"; return; }
-            if (mouseX >= cx + 94 && mouseX <= cx + 144) { _currentTool = DrawTool.Eraser; _status = "Ferramenta: Borracha"; return; }
-            if (mouseX >= cx + 146 && mouseX <= cx + 180) { _brushSize = 1; _status = "Espessura: 1px"; return; }
-            if (mouseX >= cx + 182 && mouseX <= cx + 216) { _brushSize = 2; _status = "Espessura: 2px"; return; }
-            if (mouseX >= cx + 218 && mouseX <= cx + 252) { _brushSize = 4; _status = "Espessura: 4px"; return; }
-            if (mouseX >= cx + 254 && mouseX <= cx + 302) { ClearCanvas(); _status = "Tela limpa"; return; }
-            if (mouseX >= cx + 304 && mouseX <= cx + 356) { SaveBitmap(); return; }
+            if (mouseX >= cx + 6 && mouseX <= cx + 76) { _currentTool = DrawTool.Brush; _status = "Ferramenta: Pincel"; return; }
+            if (mouseX >= cx + 80 && mouseX <= cx + 145) { _currentTool = DrawTool.Line; _status = "Ferramenta: Reta (Clique e arraste)"; return; }
+            if (mouseX >= cx + 149 && mouseX <= cx + 229) { _currentTool = DrawTool.Eraser; _status = "Ferramenta: Borracha"; return; }
+            if (mouseX >= cx + 233 && mouseX <= cx + 283) { _brushSize = 1; _status = "Espessura: 1px"; return; }
+            if (mouseX >= cx + 287 && mouseX <= cx + 337) { _brushSize = 2; _status = "Espessura: 2px"; return; }
+            if (mouseX >= cx + 341 && mouseX <= cx + 391) { _brushSize = 4; _status = "Espessura: 4px"; return; }
+            if (mouseX >= cx + 395 && mouseX <= cx + 470) { ClearCanvas(); _status = "Tela limpa"; return; }
+            if (mouseX >= cx + 474 && mouseX <= cx + 549) { SaveBitmap(); return; }
         }
 
         // Clique na Tela de Desenho
-        int canvasX = cx + 4;
-        int canvasY = cy + 26;
+        int canvasX = cx + 6;
+        int canvasY = cy + 38;
         if (mouseX >= canvasX && mouseX < canvasX + CanvasW && mouseY >= canvasY && mouseY < canvasY + CanvasH)
         {
             _isDrawing = true;
@@ -273,8 +273,8 @@ public class PaintPadApp : Window
     {
         if (!_isDrawing) return;
 
-        int canvasX = ClientX + 4;
-        int canvasY = ClientY + 26;
+        int canvasX = ClientX + 6;
+        int canvasY = ClientY + 38;
 
         int localX = Math.Clamp(mouseX - canvasX, 0, CanvasW - 1);
         int localY = Math.Clamp(mouseY - canvasY, 0, CanvasH - 1);
@@ -304,8 +304,8 @@ public class PaintPadApp : Window
     {
         if (_isDrawing && _currentTool == DrawTool.Line && _lineStartX >= 0)
         {
-            int canvasX = ClientX + 4;
-            int canvasY = ClientY + 26;
+            int canvasX = ClientX + 6;
+            int canvasY = ClientY + 38;
             int localX = Math.Clamp(mouseX - canvasX, 0, CanvasW - 1);
             int localY = Math.Clamp(mouseY - canvasY, 0, CanvasH - 1);
 

@@ -23,31 +23,57 @@ public enum StartMenuItem
 }
 
 /// <summary>
-/// Barra de tarefas moderna, escura e translúcida (estilo COSMIC / Flat UI)
+/// Ambiente de desktop moderno do NybuOS RV (Revolution):
+/// Barra superior estilo macOS com vidro fosco (Menu Bar), relógio e placeholders,
+/// e Dock Flutuante com bordas arredondadas, ícones squircle de 44x44 e indicadores de execução.
 /// </summary>
 public class Taskbar
 {
-    public const int Height = 36;
-    private readonly WindowManager _windowManager;
+    public const int Height = 90;
+    public const int TopBarHeight = 32;
+    public const int DockHeight = 90;
+    public const int DockMarginBottom = 16;
+    public const int DockIconSize = 60;
+    public const int DockIconSpacing = 12;
+    public const int DockPadX = 18;
 
+    private readonly WindowManager _windowManager;
     public bool IsStartMenuOpen { get; set; }
 
     public event Action<StartMenuItem> OnMenuItemSelected;
 
-    private readonly (string Title, StartMenuItem Item, Func<IconImage> Icon)[] _menuItems = new (string Title, StartMenuItem Item, Func<IconImage> Icon)[]
+    // Definição dos itens do Dock Flutuante (44x44)
+    public class DockItem
     {
-        ("Arquivos", StartMenuItem.FileManager, () => IconResources.FileManagerIcon),
-        ("Editor de Texto", StartMenuItem.TextEditor, () => IconResources.TextEditorIcon),
-        ("PaintPad", StartMenuItem.PaintPad, () => IconResources.PaintPadIcon),
-        ("Reproducao de Midia", StartMenuItem.MediaReproduction, () => IconResources.MediaIcon),
-        ("Painel de Controle", StartMenuItem.ControlPanel, () => IconResources.ControlPanelIcon),
-        ("CentralLogic (Minas)", StartMenuItem.CentralLogic, () => IconResources.CentralLogicIcon),
-        ("Planilha", StartMenuItem.Spreadsheet, () => IconResources.SpreadsheetIcon),
-        ("Calculadora", StartMenuItem.Calculator, () => IconResources.CalculatorIcon),
-        ("Terminal", StartMenuItem.Terminal, () => IconResources.TerminalIcon),
-        ("Instalar no HD", StartMenuItem.Installer, () => IconResources.InstallerIcon),
-        ("Sobre o NybuOS", StartMenuItem.About, () => IconResources.AboutIcon),
-        ("Desligar", StartMenuItem.Shutdown, () => IconResources.ShutdownIcon)
+        public string Title { get; set; }
+        public StartMenuItem Item { get; set; }
+        public Func<IconImage> IconResolver { get; set; }
+        public bool IsSeparatorBefore { get; set; }
+
+        public DockItem(string title, StartMenuItem item, Func<IconImage> icon, bool separator = false)
+        {
+            Title = title;
+            Item = item;
+            IconResolver = icon;
+            IsSeparatorBefore = separator;
+        }
+    }
+
+    private readonly List<DockItem> _dockItems = new List<DockItem>()
+    {
+        new DockItem("Finder", StartMenuItem.FileManager, () => IconResources.FinderDock),
+        new DockItem("Editor de Texto", StartMenuItem.TextEditor, () => IconResources.TextEditorDock),
+        new DockItem("PaintPad", StartMenuItem.PaintPad, () => IconResources.PaintPadDock),
+        new DockItem("Midia", StartMenuItem.MediaReproduction, () => IconResources.MediaDock),
+        new DockItem("Ajustes", StartMenuItem.ControlPanel, () => IconResources.ControlPanelDock),
+        new DockItem("Minas", StartMenuItem.CentralLogic, () => IconResources.CentralLogicDock),
+        new DockItem("Calculadora", StartMenuItem.Calculator, () => IconResources.CalculatorDock),
+        new DockItem("Planilha", StartMenuItem.Spreadsheet, () => IconResources.SpreadsheetDock),
+        new DockItem("Terminal", StartMenuItem.Terminal, () => IconResources.TerminalDock),
+        new DockItem("Instalar no HD", StartMenuItem.Installer, () => IconResources.InstallerDock),
+        new DockItem("Sobre o NybuOS", StartMenuItem.About, () => IconResources.AboutDock),
+        new DockItem("Lixeira", StartMenuItem.None, () => IconResources.TrashDock, separator: true),
+        new DockItem("Desligar", StartMenuItem.Shutdown, () => IconResources.ShutdownDock)
     };
 
     public Taskbar(WindowManager windowManager)
@@ -56,160 +82,330 @@ public class Taskbar
         IsStartMenuOpen = false;
     }
 
+    /// <summary>
+    /// Renderiza a Barra Superior e o Dock Flutuante.
+    /// </summary>
     public void Draw(DisplayDriver display, int mouseX = -1, int mouseY = -1)
     {
         int screenW = display.Width;
         int screenH = display.Height;
-        int y = screenH - Height;
 
-        display.DrawModernTaskbar(y, screenW, Height);
+        // 1. Barra Superior (Top Menu Bar) estilo macOS
+        DrawTopMenuBar(display, screenW, mouseX, mouseY);
 
-        int startBtnW = 38;
-        int startBtnH = 30;
-        int startBtnX = 6;
-        int startBtnY = y + 3;
+        // 2. Dock Flutuante no centro inferior
+        DrawFloatingDock(display, screenW, screenH, mouseX, mouseY);
 
-        bool isStartHover = mouseX >= startBtnX && mouseX <= startBtnX + startBtnW &&
-                            mouseY >= startBtnY && mouseY <= startBtnY + startBtnH;
-
-        display.DrawModernStartButton(startBtnX, startBtnY, startBtnW, startBtnH, IsStartMenuOpen, isStartHover);
-
-        int currentX = startBtnX + startBtnW + 8;
-        var windows = _windowManager.Windows;
-
-        DateTime now = DateTime.Now;
-        string timeStr = $"{now.Hour:D2}:{now.Minute:D2}";
-        int clockW = 55;
-        int clockX = screenW - clockW - 12;
-        display.DrawString(clockX, y + 10, timeStr, Theme.TextPrimary);
-
-        int maxAvailableW = clockX - currentX - 10;
-        if (windows.Count > 0 && maxAvailableW > 60)
-        {
-            int btnW = Math.Min(160, maxAvailableW / windows.Count);
-            for (int i = 0; i < windows.Count; i++)
-            {
-                var win = windows[i];
-                if (win.IsClosed) continue;
-
-                int bx = currentX + (i * (btnW + 4));
-                int by = y + 4;
-                int bh = Height - 8;
-
-                bool isHover = mouseX >= bx && mouseX <= bx + btnW &&
-                               mouseY >= by && mouseY <= by + bh;
-
-                Color itemBg = win.IsActive ? Theme.AccentColor : (isHover ? Theme.SurfaceHover : Theme.ButtonBg);
-                display.DrawFilledRectangle(bx, by, btnW, bh, itemBg);
-
-                if (win.IsActive)
-                {
-                    display.DrawFilledRectangle(bx, by + bh - 2, btnW, 2, Color.White);
-                }
-                else if (isHover)
-                {
-                    display.DrawRectangle(bx, by, btnW, bh, Theme.ButtonBorder);
-                }
-
-                int iconOffset = bx + 6;
-                if (win.Icon != null)
-                {
-                    display.DrawIcon(iconOffset, by + (bh - win.Icon.Height) / 2, win.Icon);
-                    iconOffset += win.Icon.Width + 8;
-                }
-
-                string label = win.Title;
-                int maxChars = Math.Max(0, (btnW - (iconOffset - bx) - 8) / 8);
-                if (maxChars > 0 && label.Length > maxChars)
-                {
-                    label = label.Substring(0, Math.Max(0, maxChars - 2)) + "..";
-                }
-
-                display.DrawString(iconOffset, by + (bh - 16) / 2, label, Theme.TextPrimary);
-            }
-        }
-
+        // 3. Dropdown Menu do NybuOS (Apple Menu)
         if (IsStartMenuOpen)
         {
-            DrawStartMenu(display, y, mouseX, mouseY);
+            DrawNybuAppleDropdown(display, mouseX, mouseY);
         }
     }
 
-    private void DrawStartMenu(DisplayDriver display, int taskbarY, int mouseX = -1, int mouseY = -1)
+    private void DrawTopMenuBar(DisplayDriver display, int screenW, int mouseX, int mouseY)
     {
-        int menuW = 250;
-        int itemH = 34;
-        int menuH = (_menuItems.Length * itemH) + 12;
-        int menuX = 6;
-        int menuY = taskbarY - menuH - 6;
+        // Barra Superior 3D Light com degradê de branco para cinza profundo
+        display.Draw3DLightTopBar(screenW, TopBarHeight);
 
-        // Fundo com transparência Dark Glass
-        display.DrawTranslucentRectangle(menuX, menuY, menuW, menuH, Theme.StartMenuBg);
-        display.DrawRectangle(menuX, menuY, menuW, menuH, Theme.WindowBorderInactive);
-
-        for (int i = 0; i < _menuItems.Length; i++)
+        // Ícone / Monograma do NybuOS no canto superior esquerdo
+        int logoX = 14;
+        int logoY = (TopBarHeight - 20) / 2;
+        bool isLogoHover = mouseX >= 6 && mouseX <= 40 && mouseY >= 0 && mouseY <= TopBarHeight;
+        if (isLogoHover || IsStartMenuOpen)
         {
-            int itemY = menuY + 6 + (i * itemH);
-            var item = _menuItems[i];
+            display.DrawFilledRoundedRectangle(6, 3, 34, TopBarHeight - 6, 4, Theme.SurfaceHover, Theme.LightBorder);
+        }
 
-            bool isItemHover = mouseX >= menuX + 4 && mouseX <= menuX + menuW - 4 &&
-                               mouseY >= itemY && mouseY < itemY + itemH;
+        if (IconResources.NybuLogoTopBar != null)
+        {
+            display.DrawIcon(logoX, logoY, IconResources.NybuLogoTopBar);
+        }
 
-            if (isItemHover)
+        // Título do aplicativo atualmente ativo (em destaque escuro de alto contraste)
+        string activeApp = _windowManager.ActiveWindow?.Title ?? "NybuOS RV";
+        if (activeApp.Contains(" - "))
+        {
+            activeApp = activeApp.Substring(0, activeApp.IndexOf(" - "));
+        }
+        int textY = (TopBarHeight - CosmosNativeFont.Height) / 2;
+        display.DrawString(48, textY, activeApp, Theme.TextPrimary);
+
+        // Placeholders de menus padrão do sistema
+        int curMenuX = 48 + (activeApp.Length * CosmosNativeFont.Width) + 24;
+        string[] standardMenus = new string[] { "Arquivo", "Editar", "Visualizar", "Ir", "Janela", "Ajuda" };
+        foreach (var m in standardMenus)
+        {
+            display.DrawString(curMenuX, textY, m, Theme.TextSecondary);
+            curMenuX += (m.Length * CosmosNativeFont.Width) + 18;
+        }
+
+        // Canto Superior Direito: Relógio e Placeholders (Wi-Fi, Volume, Bateria, Lupa Spotlight, Central de Controle)
+        DateTime now = DateTime.Now;
+        string timeStr = $"{now:ddd d MMM}  {now.Hour:D2}:{now.Minute:D2}";
+        int clockW = timeStr.Length * CosmosNativeFont.Width;
+        int clockX = screenW - clockW - 14;
+
+        display.DrawString(clockX, textY, timeStr, Theme.TextPrimary);
+
+        int rightX = clockX - 28;
+        int iconY = (TopBarHeight - 18) / 2;
+
+        // Central de Controle
+        if (IconResources.ControlCenterIcon != null)
+        {
+            display.DrawIcon(rightX, iconY, IconResources.ControlCenterIcon);
+            rightX -= 26;
+        }
+
+        // Spotlight / Lupa
+        if (IconResources.SearchIcon != null)
+        {
+            display.DrawIcon(rightX, iconY, IconResources.SearchIcon);
+            rightX -= 26;
+        }
+
+        // Bateria
+        if (IconResources.BatteryIcon != null)
+        {
+            display.DrawIcon(rightX, iconY, IconResources.BatteryIcon);
+            rightX -= 28;
+        }
+
+        // Wi-Fi
+        if (IconResources.WifiIcon != null)
+        {
+            display.DrawIcon(rightX, iconY, IconResources.WifiIcon);
+            rightX -= 26;
+        }
+
+        // Volume
+        if (IconResources.VolumeIcon != null)
+        {
+            display.DrawIcon(rightX, iconY, IconResources.VolumeIcon);
+        }
+    }
+
+    private void DrawFloatingDock(DisplayDriver display, int screenW, int screenH, int mouseX, int mouseY)
+    {
+        int iconSize = DockIconSize;
+        int iconSpacing = DockIconSpacing;
+        int padX = DockPadX;
+
+        // Calcula largura total do dock
+        int totalW = padX * 2;
+        for (int i = 0; i < _dockItems.Count; i++)
+        {
+            if (_dockItems[i].IsSeparatorBefore) totalW += 16;
+            totalW += iconSize;
+            if (i < _dockItems.Count - 1) totalW += iconSpacing;
+        }
+
+        int dockX = (screenW - totalW) / 2;
+        int dockY = screenH - DockHeight - DockMarginBottom;
+
+        // Fundo Quadrado com VÉRTICES Arredondadas do Dock: cinza intenso e sutis gradientes brancos
+        display.DrawOpaqueGradientDock(dockX, dockY, totalW, DockHeight, cornerRadius: 10);
+
+        // Renderiza os ícones do Dock
+        int curX = dockX + padX;
+        DockItem? hoveredItem = null;
+        int hoveredIconX = 0;
+
+        for (int i = 0; i < _dockItems.Count; i++)
+        {
+            var item = _dockItems[i];
+
+            // Linha divisória vertical antes da lixeira/desligar com relevo chanfrado
+            if (item.IsSeparatorBefore)
             {
-                display.DrawFilledRectangle(menuX + 4, itemY, menuW - 8, itemH, Theme.SurfaceHover);
-                display.DrawRectangle(menuX + 4, itemY, menuW - 8, itemH, Theme.AccentColor);
+                int sepX = curX + 6;
+                display.DrawLine(sepX, dockY + 16, sepX, dockY + DockHeight - 16, Color.FromArgb(64, 68, 78));
+                display.DrawLine(sepX + 1, dockY + 16, sepX + 1, dockY + DockHeight - 16, Color.FromArgb(98, 104, 118));
+                curX += 16;
             }
 
-            var icon = item.Icon?.Invoke();
+            int iconY = dockY + (DockHeight - iconSize) / 2;
+            bool isHover = mouseX >= curX && mouseX <= curX + iconSize &&
+                           mouseY >= iconY && mouseY <= iconY + iconSize;
+
+            if (isHover)
+            {
+                hoveredItem = item;
+                hoveredIconX = curX;
+                // Efeito sutil de destaque no dock claro atrás do ícone
+                display.DrawFilledRoundedRectangle(curX - 4, iconY - 4, iconSize + 8, iconSize + 8, 8, Theme.SurfaceHover, Theme.ShadowBorder);
+            }
+
+            // Desenha o ícone
+            var icon = item.IconResolver?.Invoke();
             if (icon != null)
             {
-                display.DrawIcon(menuX + 10, itemY + (itemH - icon.Height) / 2, icon);
+                display.DrawIcon(curX, iconY, icon);
             }
 
-            Color textCol = (item.Item == StartMenuItem.Shutdown) ? Color.FromArgb(248, 113, 113) : (isItemHover ? Color.White : Theme.TextPrimary);
-            display.DrawString(menuX + 44, itemY + (itemH - 14) / 2, item.Title, textCol);
+            // Indicador de Execução estilo macOS: Ponto moderno abaixo do ícone sobre o dock claro
+            bool isRunning = IsAppRunning(item.Item);
+            if (isRunning)
+            {
+                int dotX = curX + (iconSize / 2);
+                int dotY = dockY + DockHeight - 7;
+                display.DrawFilledCircle(dotX, dotY, 3, Theme.AccentColor, Color.White);
+            }
+
+            curX += iconSize + iconSpacing;
+        }
+
+        // Tooltip flutuante acima do ícone no hover
+        if (hoveredItem != null)
+        {
+            string ttText = hoveredItem.Title;
+            int ttW = (ttText.Length * CosmosNativeFont.Width) + 20;
+            int ttH = 26;
+            int ttX = hoveredIconX + (iconSize / 2) - (ttW / 2);
+            int ttY = dockY - ttH - 8;
+
+            display.DrawFrostedGlass(ttX, ttY, ttW, ttH, Theme.Surface, alpha: 245, cornerRadius: 6);
+            display.DrawRectangle(ttX, ttY, ttW, ttH, Theme.ShadowBorder);
+            display.DrawString(ttX + 10, ttY + 5, ttText, Theme.TextPrimary);
         }
     }
 
-    public bool HandleMouseDown(int mouseX, int mouseY)
+    private bool IsAppRunning(StartMenuItem item)
     {
-        int screenH = 600;
-        int y = screenH - Height;
+        if (item == StartMenuItem.None || item == StartMenuItem.Shutdown) return false;
 
-        int startBtnW = 38;
-        int startBtnH = 30;
-        int startBtnX = 6;
-        int startBtnY = y + 3;
-
-        if (mouseX >= startBtnX && mouseX <= startBtnX + startBtnW &&
-            mouseY >= startBtnY && mouseY <= startBtnY + startBtnH)
+        foreach (var win in _windowManager.Windows)
         {
-            IsStartMenuOpen = !IsStartMenuOpen;
-            return true;
+            if (win.IsClosed) continue;
+            switch (item)
+            {
+                case StartMenuItem.FileManager:
+                    if (win is Apps.FileManagerApp) return true;
+                    break;
+                case StartMenuItem.TextEditor:
+                    if (win is Apps.TextEditorApp) return true;
+                    break;
+                case StartMenuItem.PaintPad:
+                    if (win is Apps.PaintPadApp) return true;
+                    break;
+                case StartMenuItem.MediaReproduction:
+                    if (win is Apps.MediaReproductionApp) return true;
+                    break;
+                case StartMenuItem.ControlPanel:
+                    if (win is Apps.ControlPanelApp) return true;
+                    break;
+                case StartMenuItem.CentralLogic:
+                    if (win is Apps.CentralLogicApp) return true;
+                    break;
+                case StartMenuItem.Spreadsheet:
+                    if (win is Apps.SpreadsheetApp) return true;
+                    break;
+                case StartMenuItem.Calculator:
+                    if (win is Apps.CalculatorApp) return true;
+                    break;
+                case StartMenuItem.Terminal:
+                    if (win is Apps.TerminalApp) return true;
+                    break;
+                case StartMenuItem.Installer:
+                    if (win is Apps.InstallerApp) return true;
+                    break;
+                case StartMenuItem.About:
+                    if (win is Apps.AboutApp) return true;
+                    break;
+            }
+        }
+        return false;
+    }
+
+    private void DrawNybuAppleDropdown(DisplayDriver display, int mouseX, int mouseY)
+    {
+        int menuX = 8;
+        int menuY = TopBarHeight + 2;
+        int menuW = 230;
+        int itemH = 28;
+
+        string[] items = new string[]
+        {
+            "Sobre este NybuOS RV",
+            "Preferencias do Sistema...",
+            "-",
+            "Reiniciar Computador...",
+            "Desligar o NybuOS..."
+        };
+
+        int menuH = (items.Length * itemH) + 12;
+
+        // Janela dropdown de vidro fosco com sombra
+        display.DrawFrostedGlass(menuX, menuY, menuW, menuH, Theme.StartMenuBg, alpha: 235, cornerRadius: 8);
+
+        for (int i = 0; i < items.Length; i++)
+        {
+            string label = items[i];
+            int iy = menuY + 6 + (i * itemH);
+
+            if (label == "-")
+            {
+                display.DrawLine(menuX + 10, iy + itemH / 2, menuX + menuW - 10, iy + itemH / 2, Theme.DockSeparator);
+                continue;
+            }
+
+            bool isHover = mouseX >= menuX + 4 && mouseX <= menuX + menuW - 4 &&
+                           mouseY >= iy && mouseY <= iy + itemH;
+
+            if (isHover)
+            {
+                display.DrawFrostedGlass(menuX + 4, iy, menuW - 8, itemH, Theme.AccentColor, alpha: 220, cornerRadius: 4);
+            }
+
+            Color textCol = isHover ? Color.White : (label.Contains("Desligar") ? Color.FromArgb(248, 113, 113) : Theme.TextPrimary);
+            display.DrawString(menuX + 16, iy + (itemH - CosmosNativeFont.Height) / 2, label, textCol);
+        }
+    }
+
+    public bool HandleMouseDown(int mouseX, int mouseY, int screenW = 1920, int screenH = 1080)
+    {
+        // 1. Clique no logo do NybuOS na barra superior
+        if (mouseY >= 0 && mouseY <= TopBarHeight)
+        {
+            if (mouseX >= 8 && mouseX <= 38)
+            {
+                IsStartMenuOpen = !IsStartMenuOpen;
+                return true;
+            }
         }
 
+        // 2. Clique dentro do Dropdown Menu
         if (IsStartMenuOpen)
         {
-            int menuW = 250;
-            int itemH = 34;
-            int menuH = (_menuItems.Length * itemH) + 12;
-            int menuX = 6;
-            int menuY = y - menuH - 6;
+            int menuX = 8;
+            int menuY = TopBarHeight + 2;
+            int menuW = 230;
+            int itemH = 28;
 
             if (mouseX >= menuX && mouseX <= menuX + menuW &&
-                mouseY >= menuY && mouseY <= menuY + menuH)
+                mouseY >= menuY && mouseY <= menuY + (5 * itemH) + 12)
             {
-                int clickRelY = mouseY - (menuY + 6);
-                int clickedIndex = clickRelY / itemH;
+                int relY = mouseY - (menuY + 6);
+                int idx = relY / itemH;
+                IsStartMenuOpen = false;
 
-                if (clickedIndex >= 0 && clickedIndex < _menuItems.Length)
+                switch (idx)
                 {
-                    var selected = _menuItems[clickedIndex].Item;
-                    IsStartMenuOpen = false;
-                    OnMenuItemSelected?.Invoke(selected);
-                    return true;
+                    case 0:
+                        OnMenuItemSelected?.Invoke(StartMenuItem.About);
+                        return true;
+                    case 1:
+                        OnMenuItemSelected?.Invoke(StartMenuItem.ControlPanel);
+                        return true;
+                    case 3:
+                        PowerDriver.Reboot();
+                        return true;
+                    case 4:
+                        OnMenuItemSelected?.Invoke(StartMenuItem.Shutdown);
+                        return true;
                 }
+                return true;
             }
             else
             {
@@ -217,46 +413,106 @@ public class Taskbar
             }
         }
 
-        if (mouseY >= y && mouseY <= y + Height)
+        // 3. Clique nos itens do Dock Flutuante
+        int iconSize = DockIconSize;
+        int iconSpacing = DockIconSpacing;
+        int padX = DockPadX;
+
+        int totalW = padX * 2;
+        for (int i = 0; i < _dockItems.Count; i++)
         {
-            int currentX = startBtnX + startBtnW + 8;
-            var windows = _windowManager.Windows;
-            int clockW = 55;
-            int clockX = 800 - clockW - 12;
-            int maxAvailableW = clockX - currentX - 10;
+            if (_dockItems[i].IsSeparatorBefore) totalW += 16;
+            totalW += iconSize;
+            if (i < _dockItems.Count - 1) totalW += iconSpacing;
+        }
 
-            if (windows.Count > 0 && maxAvailableW > 60)
+        int dockX = (screenW - totalW) / 2;
+        int dockY = screenH - DockHeight - DockMarginBottom;
+
+        if (mouseX >= dockX && mouseX <= dockX + totalW &&
+            mouseY >= dockY && mouseY <= dockY + DockHeight)
+        {
+            int curX = dockX + padX;
+            for (int i = 0; i < _dockItems.Count; i++)
             {
-                int btnW = Math.Min(160, maxAvailableW / windows.Count);
-                for (int i = 0; i < windows.Count; i++)
-                {
-                    var win = windows[i];
-                    if (win.IsClosed) continue;
+                var item = _dockItems[i];
+                if (item.IsSeparatorBefore) curX += 16;
 
-                    int bx = currentX + (i * (btnW + 4));
-                    if (mouseX >= bx && mouseX <= bx + btnW)
-                    {
-                        if (win.IsMinimized)
-                        {
-                            win.IsMinimized = false;
-                            _windowManager.BringToFront(win);
-                        }
-                        else if (win.IsActive)
-                        {
-                            win.IsMinimized = true;
-                            _windowManager.ActivateTopWindow();
-                        }
-                        else
-                        {
-                            _windowManager.BringToFront(win);
-                        }
-                        return true;
-                    }
+                int iconY = dockY + (DockHeight - iconSize) / 2;
+                if (mouseX >= curX && mouseX <= curX + iconSize &&
+                    mouseY >= iconY && mouseY <= iconY + iconSize)
+                {
+                    ActivateOrLaunchDockApp(item.Item);
+                    return true;
                 }
+
+                curX += iconSize + iconSpacing;
             }
             return true;
         }
 
         return false;
+    }
+
+    private void ActivateOrLaunchDockApp(StartMenuItem item)
+    {
+        if (item == StartMenuItem.None) return;
+
+        if (item == StartMenuItem.Shutdown)
+        {
+            OnMenuItemSelected?.Invoke(StartMenuItem.Shutdown);
+            return;
+        }
+
+        // Procura se já há uma janela aberta para este aplicativo
+        Window? targetWin = null;
+        foreach (var win in _windowManager.Windows)
+        {
+            if (win.IsClosed) continue;
+            bool match = item switch
+            {
+                StartMenuItem.FileManager => win is Apps.FileManagerApp,
+                StartMenuItem.TextEditor => win is Apps.TextEditorApp,
+                StartMenuItem.PaintPad => win is Apps.PaintPadApp,
+                StartMenuItem.MediaReproduction => win is Apps.MediaReproductionApp,
+                StartMenuItem.ControlPanel => win is Apps.ControlPanelApp,
+                StartMenuItem.CentralLogic => win is Apps.CentralLogicApp,
+                StartMenuItem.Spreadsheet => win is Apps.SpreadsheetApp,
+                StartMenuItem.Calculator => win is Apps.CalculatorApp,
+                StartMenuItem.Terminal => win is Apps.TerminalApp,
+                StartMenuItem.Installer => win is Apps.InstallerApp,
+                StartMenuItem.About => win is Apps.AboutApp,
+                _ => false
+            };
+
+            if (match)
+            {
+                targetWin = win;
+                break;
+            }
+        }
+
+        if (targetWin != null)
+        {
+            if (targetWin.IsMinimized)
+            {
+                targetWin.IsMinimized = false;
+                _windowManager.BringToFront(targetWin);
+            }
+            else if (targetWin.IsActive)
+            {
+                targetWin.IsMinimized = true;
+                _windowManager.ActivateTopWindow();
+            }
+            else
+            {
+                _windowManager.BringToFront(targetWin);
+            }
+        }
+        else
+        {
+            // Se o app não estiver aberto, dispara o evento para iniciá-lo
+            OnMenuItemSelected?.Invoke(item);
+        }
     }
 }

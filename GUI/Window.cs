@@ -6,9 +6,9 @@ using NybuOS.Drivers;
 namespace NybuOS.GUI;
 
 /// <summary>
-/// Janela base moderna com Dark Glass estilizado, cantos retos,
-/// preenchimento opaco de janela para evitar sobreposição fantasma
-/// e cabeçalho limpo com espaçamento correto de botões.
+/// Janela base do NybuOS RV (Revolution) com estética macOS,
+/// superfícies de vidro fosco (Frosted Glass), botões circulares (fechar, minimizar, zoom)
+/// e cantos arredondados de alta fidelidade visual.
 /// </summary>
 public abstract class Window
 {
@@ -24,18 +24,18 @@ public abstract class Window
     public bool IsMinimized { get; set; }
     public bool IsClosed { get; set; }
 
-    public void Close()
-    {
-        IsClosed = true;
-    }
-
-    public const int TitleBarHeight = 28;
+    public const int TitleBarHeight = 38;
     public const int BorderWidth = 1;
 
     public int ClientX => X + BorderWidth;
     public int ClientY => Y + TitleBarHeight;
     public int ClientWidth => Width - (BorderWidth * 2);
     public int ClientHeight => Height - TitleBarHeight - BorderWidth;
+
+    public void Close()
+    {
+        IsClosed = true;
+    }
 
     protected Window(int id, string title, int x, int y, int width, int height)
     {
@@ -54,9 +54,8 @@ public abstract class Window
     {
         if (mx >= X && mx <= X + Width && my >= Y && my <= Y + TitleBarHeight)
         {
-            int btnCloseX = X + Width - 28;
-            int btnMinX = X + Width - 56;
-            if (mx >= btnMinX && mx <= X + Width)
+            // Não arrasta a janela se o clique foi nos botões circulares à esquerda
+            if (mx <= X + 80)
             {
                 return false;
             }
@@ -67,16 +66,16 @@ public abstract class Window
 
     public bool IsCloseButtonClicked(int mx, int my)
     {
-        int btnX = X + Width - 28;
-        int btnY = Y + 2;
-        return mx >= btnX && mx <= btnX + 24 && my >= btnY && my <= btnY + 24;
+        int dx = mx - (X + 18);
+        int dy = my - (Y + 19);
+        return (dx * dx + dy * dy) <= 100; // raio de clique 10px
     }
 
     public bool IsMinimizeButtonClicked(int mx, int my)
     {
-        int btnX = X + Width - 56;
-        int btnY = Y + 2;
-        return mx >= btnX && mx <= btnX + 24 && my >= btnY && my <= btnY + 24;
+        int dx = mx - (X + 42);
+        int dy = my - (Y + 19);
+        return (dx * dx + dy * dy) <= 100; // raio de clique 10px
     }
 
     public bool ContainsPoint(int px, int py)
@@ -89,47 +88,30 @@ public abstract class Window
     {
         if (IsMinimized || IsClosed) return;
 
-        // 1. Corpo da janela: Translúcido Dark Glass com requício preto
-        display.DrawTranslucentRectangle(X, Y, Width, Height, Theme.WindowBg);
+        // 1. Moldura da Janela Light Theme: cabeçalho com o mesmo design do dock e corpo claro 3D
+        display.DrawWindowFrameLight(X, Y, Width, Height, TitleBarHeight, 10, IsActive);
 
-        // 2. Borda minimalista reta na cor de destaque
-        Color border = IsActive ? Theme.WindowBorder : Theme.WindowBorderInactive;
-        display.DrawRectangle(X, Y, Width, Height, border);
+        // 2. Botões circulares (Traffic Lights) ampliados para Full HD no canto superior esquerdo
+        display.DrawTrafficLight(X + 18, Y + 19, 7, Theme.CloseButton, Theme.CloseButtonBorder, false, 'x');
+        display.DrawTrafficLight(X + 42, Y + 19, 7, Theme.MinimizeButton, Theme.MinimizeButtonBorder, false, '-');
+        display.DrawTrafficLight(X + 66, Y + 19, 7, Theme.MaximizeButton, Theme.MaximizeButtonBorder, false, '+');
 
-        // 3. Cabeçalho com transparência
-        display.DrawFilledRectangle(X + 1, Y + 1, Width - 2, TitleBarHeight - 1, Theme.WindowHeaderBg);
-        display.DrawLine(X + 1, Y + TitleBarHeight, X + Width - 2, Y + TitleBarHeight, Theme.WindowBorderInactive);
+        // 4. Título da Janela centralizado
+        int textW = Title.Length * CosmosNativeFont.Width;
+        int titleX = X + Math.Max(84, (Width - textW) / 2);
+        int titleY = Y + (TitleBarHeight - CosmosNativeFont.Height) / 2;
 
-        // Ícone e Título da Janela
-        int textOffset = X + 10;
-        if (Icon != null)
-        {
-            display.DrawIcon(X + 8, Y + (TitleBarHeight - Icon.Height) / 2, Icon);
-            textOffset = X + 8 + Icon.Width + 8;
-        }
-
-        int maxTitleChars = Math.Max(0, (Width - (textOffset - X) - 65) / 8);
+        int maxChars = Math.Max(0, (Width - 160) / CosmosNativeFont.Width);
         string displayTitle = Title;
-        if (displayTitle.Length > maxTitleChars && maxTitleChars > 3)
+        if (displayTitle.Length > maxChars && maxChars > 3)
         {
-            displayTitle = displayTitle.Substring(0, maxTitleChars - 2) + "..";
+            displayTitle = displayTitle.Substring(0, maxChars - 2) + "..";
+            titleX = X + 84;
         }
-        display.DrawString(textOffset, Y + (TitleBarHeight - 14) / 2, displayTitle, IsActive ? Theme.TextPrimary : Theme.TextSecondary);
 
-        // 4. Botão Minimizar [_]
-        int minX = X + Width - 56;
-        int minY = Y + 4;
-        display.DrawFilledRectangle(minX, minY, 22, 20, Theme.WindowHeaderBg);
-        display.DrawLine(minX + 6, minY + 14, minX + 16, minY + 14, Theme.TextSecondary);
+        display.DrawString(titleX, titleY, displayTitle, IsActive ? Theme.TextPrimary : Theme.TextSecondary);
 
-        // 5. Botão Fechar [X]
-        int closeX = X + Width - 28;
-        int closeY = Y + 4;
-        display.DrawFilledRectangle(closeX, closeY, 22, 20, Theme.WindowHeaderBg);
-        display.DrawLine(closeX + 6, closeY + 5, closeX + 16, closeY + 15, Theme.TextSecondary);
-        display.DrawLine(closeX + 16, closeY + 5, closeX + 6, closeY + 15, Theme.TextSecondary);
-
-        // 6. Conteúdo interno do aplicativo
+        // 5. Conteúdo interno do aplicativo
         DrawContent(display);
     }
 

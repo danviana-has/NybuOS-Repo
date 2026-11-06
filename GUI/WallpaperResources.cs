@@ -21,63 +21,88 @@ public static class WallpaperResources
             return _cachedWallpaper;
         }
 
-        byte[]? bmpBytes = null;
+        byte[]? rawBytes = null;
         try
         {
-            bmpBytes = EmbeddedWallpaperData.GetWallpaperBmpBytes();
+            rawBytes = EmbeddedWallpaperData.GetWallpaperJpgBytes();
         }
         catch
         {
-            bmpBytes = null;
+            rawBytes = null;
         }
 
-        if (bmpBytes == null || bmpBytes.Length < 54)
+        if (rawBytes != null && rawBytes.Length > 30)
         {
-            _cachedWallpaper = GenerateCosmicBackdrop(targetWidth, targetHeight);
-            return _cachedWallpaper;
-        }
-
-        // Decodificação direta de BMP de 24bpp sem reescalonamento em runtime
-        try
-        {
-            int dataOffset = BitConverter.ToInt32(bmpBytes, 10);
-            int width = BitConverter.ToInt32(bmpBytes, 18);
-            int height = BitConverter.ToInt32(bmpBytes, 22);
-            short bpp = BitConverter.ToInt16(bmpBytes, 28);
-
-            bool topDown = height < 0;
-            int actualHeight = Math.Abs(height);
-
-            var img = new IconImage(width, actualHeight);
-            int rowSize = ((width * bpp + 31) / 32) * 4;
-
-            for (int y = 0; y < actualHeight; y++)
+            // 1. Processa como Bitmap nativo do Cosmos (.BMP)
+            try
             {
-                int bmpY = topDown ? y : (actualHeight - 1 - y);
-                int rowOffset = dataOffset + (bmpY * rowSize);
-
-                for (int x = 0; x < width; x++)
+                if (rawBytes[0] == 0x42 && rawBytes[1] == 0x4D)
                 {
-                    int pixelOffset = rowOffset + (x * (bpp / 8));
-                    if (pixelOffset + 2 < bmpBytes.Length)
+                    int dataOffset = BitConverter.ToInt32(rawBytes, 10);
+                    int width = BitConverter.ToInt32(rawBytes, 18);
+                    int height = BitConverter.ToInt32(rawBytes, 22);
+                    short bpp = BitConverter.ToInt16(rawBytes, 28);
+
+                    bool topDown = height < 0;
+                    int actualHeight = Math.Abs(height);
+
+                    var img = new IconImage(width, actualHeight);
+                    int rowSize = ((width * bpp + 31) / 32) * 4;
+
+                    for (int y = 0; y < actualHeight; y++)
                     {
-                        byte b = bmpBytes[pixelOffset];
-                        byte g = bmpBytes[pixelOffset + 1];
-                        byte r = bmpBytes[pixelOffset + 2];
-                        uint argb = 0xFF000000 | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
-                        img.SetPixel(x, y, argb);
+                        int bmpY = topDown ? y : (actualHeight - 1 - y);
+                        int rowOffset = dataOffset + (bmpY * rowSize);
+
+                        for (int x = 0; x < width; x++)
+                        {
+                            int pixelOffset = rowOffset + (x * (bpp / 8));
+                            if (pixelOffset + 2 < rawBytes.Length)
+                            {
+                                byte b = rawBytes[pixelOffset];
+                                byte g = rawBytes[pixelOffset + 1];
+                                byte r = rawBytes[pixelOffset + 2];
+                                uint argb = 0xFF000000 | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
+                                img.SetPixel(x, y, argb);
+                            }
+                        }
+                    }
+
+                    if (targetWidth > 0 && targetHeight > 0 && (img.Width != targetWidth || img.Height != targetHeight))
+                    {
+                        _cachedWallpaper = PngDecoder.Resize(img, targetWidth, targetHeight);
+                    }
+                    else
+                    {
+                        _cachedWallpaper = img;
+                    }
+                    return _cachedWallpaper;
+                }
+            }
+            catch
+            {
+            }
+
+            // 2. Fallback para JPG
+            try
+            {
+                if (rawBytes[0] == 0xFF && rawBytes[1] == 0xD8)
+                {
+                    var decodedJpg = JpgDecoder.Decode(rawBytes, targetWidth, targetHeight);
+                    if (decodedJpg != null)
+                    {
+                        _cachedWallpaper = decodedJpg;
+                        return _cachedWallpaper;
                     }
                 }
             }
+            catch
+            {
+            }
+        }
 
-            _cachedWallpaper = img;
-            return _cachedWallpaper;
-        }
-        catch
-        {
-            _cachedWallpaper = GenerateCosmicBackdrop(targetWidth, targetHeight);
-            return _cachedWallpaper;
-        }
+        _cachedWallpaper = GenerateCosmicBackdrop(targetWidth, targetHeight);
+        return _cachedWallpaper;
     }
 
     private static IconImage GenerateCosmicBackdrop(int width, int height)

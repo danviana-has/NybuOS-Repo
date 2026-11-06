@@ -15,14 +15,12 @@
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\dvian\\OneDrive\\Documentos\\Desktop\\ProjetosGui\\NybuOS\\NybuOS\\NuGet.Config",
-          "C:\\Users\\dvian\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "C:\\Users\\dvian\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "C:\\Users\\dvian\\AppData\\Local\\Cosmos\\Packages": {},
           "https://api.nuget.org/v3/index.json": {}
         },

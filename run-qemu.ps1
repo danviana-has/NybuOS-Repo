@@ -1,5 +1,5 @@
 param(
-    [string]$RAM = "1024M"
+    [string]$RAM = "2048M"
 )
 
 $qemu = "$env:LOCALAPPDATA\Cosmos\Tools\qemu\bin\qemu-system-x86_64.exe"
@@ -14,11 +14,10 @@ $isoForward = $iso.Replace('\', '/')
 $shareForward = $share.Replace('\', '/')
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " Iniciando NybuOS no QEMU com $RAM de RAM (TCG Limine Compat)" -ForegroundColor Cyan
+Write-Host " Iniciando NybuOS RV no QEMU Full HD (1920x1080) com $RAM" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-# cosmos oficial usa: -M q35 -cpu max -m RAM -device ide-cd... -vga std -serial stdio
-# NUNCA use WHPX com o kernel do Cosmos/Limine porque o hypervisor da Microsoft quebra MSI interrupts (exit code 4).
+# Suporte Full HD 1920x1080 com 64MB de memória de vídeo VGA
 $argsList = @(
     "-L", $shareForward,
     "-M", "q35",
@@ -30,6 +29,7 @@ $argsList = @(
     "-no-reboot",
     "-no-shutdown",
     "-vga", "std",
+    "-global", "VGA.vgamem_mb=64",
     "-serial", "stdio"
 )
 

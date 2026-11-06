@@ -23,7 +23,7 @@ public class TextEditorApp : Window
     private bool _cursorVisible = true;
 
     public TextEditorApp(int id, int x, int y, VirtualFileSystem vfs, WindowManager? wm = null, string? initialFilePath = null)
-        : base(id, "Bloco de Notas - NybuOS", x, y, 380, 280)
+        : base(id, "Bloco de Notas - NybuOS", x, y, 780, 520)
     {
         Icon = IconResources.TextEditorIcon ?? IconResources.Doc16;
         _vfs = vfs;
@@ -65,19 +65,19 @@ public class TextEditorApp : Window
         // Fundo cinza Win95
         display.DrawFilledRectangle(cx, cy, cw, ch, Theme.Surface);
 
-        // Barra de Ações / Botões
-        display.DrawButton(cx + 4, cy + 3, 50, 20, "Novo", false);
-        display.DrawButton(cx + 58, cy + 3, 55, 20, "Salvar", false);
-        display.DrawButton(cx + 117, cy + 3, 55, 20, "Abrir", false);
+        // Barra de Ações / Botões ampliados
+        display.DrawModernButton(cx + 6, cy + 5, 75, 28, "Novo", false);
+        display.DrawModernButton(cx + 86, cy + 5, 85, 28, "Salvar", false);
+        display.DrawModernButton(cx + 176, cy + 5, 85, 28, "Abrir", false);
 
         // Caminho do arquivo atual
-        display.DrawString(cx + 180, cy + 7, System.IO.Path.GetFileName(_filePath), Color.DarkBlue);
+        display.DrawString(cx + 275, cy + 11, System.IO.Path.GetFileName(_filePath), Color.DarkBlue);
 
         // Área de edição branca chanfrada afundada (Sunken)
-        int editY = cy + 27;
-        int editH = ch - 48;
-        display.DrawFilledRectangle(cx + 4, editY, cw - 8, editH, Color.White);
-        display.Draw3DBevel(cx + 4, editY, cw - 8, editH, true);
+        int editY = cy + 38;
+        int editH = ch - 64;
+        display.DrawFilledRectangle(cx + 6, editY, cw - 12, editH, Color.White);
+        display.Draw3DBevel(cx + 6, editY, cw - 12, editH, true);
 
         // Renderiza o texto com quebra de linha visual
         string text = _textBuffer.ToString();
@@ -153,7 +153,7 @@ public class TextEditorApp : Window
         int cy = ClientY;
 
         // Botão Novo
-        if (mouseX >= cx + 4 && mouseX <= cx + 54 && mouseY >= cy + 3 && mouseY <= cy + 23)
+        if (mouseX >= cx + 6 && mouseX <= cx + 81 && mouseY >= cy + 5 && mouseY <= cy + 33)
         {
             _textBuffer.Clear();
             _cursorIndex = 0;
@@ -163,7 +163,7 @@ public class TextEditorApp : Window
         }
 
         // Botão Salvar (Abre Diálogo Salvar com Escolha de Nome)
-        if (mouseX >= cx + 58 && mouseX <= cx + 113 && mouseY >= cy + 3 && mouseY <= cy + 23)
+        if (mouseX >= cx + 86 && mouseX <= cx + 171 && mouseY >= cy + 5 && mouseY <= cy + 33)
         {
             if (_windowManager != null)
             {
@@ -182,7 +182,7 @@ public class TextEditorApp : Window
         }
 
         // Botão Abrir (Abre Diálogo Abrir com Duplo Clique)
-        if (mouseX >= cx + 117 && mouseX <= cx + 172 && mouseY >= cy + 3 && mouseY <= cy + 23)
+        if (mouseX >= cx + 176 && mouseX <= cx + 261 && mouseY >= cy + 5 && mouseY <= cy + 33)
         {
             if (_windowManager != null)
             {
@@ -200,9 +200,9 @@ public class TextEditorApp : Window
         }
 
         // Clique no corpo do texto para posicionar o cursor no final
-        int editY = cy + 27;
-        int editH = ClientHeight - 48;
-        if (mouseX >= cx + 4 && mouseX <= cx + ClientWidth - 4 && mouseY >= editY && mouseY <= editY + editH)
+        int editY = cy + 38;
+        int editH = ClientHeight - 64;
+        if (mouseX >= cx + 6 && mouseX <= cx + ClientWidth - 6 && mouseY >= editY && mouseY <= editY + editH)
         {
             _cursorIndex = _textBuffer.Length;
         }

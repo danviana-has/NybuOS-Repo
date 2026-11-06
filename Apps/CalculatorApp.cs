@@ -26,7 +26,7 @@ public class CalculatorApp : Window
     };
 
     public CalculatorApp(int id, int x, int y)
-        : base(id, "Calculadora", x, y, 220, 240)
+        : base(id, "Calculadora", x, y, 340, 440)
     {
         Icon = IconResources.Calculator16;
     }
@@ -42,37 +42,38 @@ public class CalculatorApp : Window
         display.DrawFilledRectangle(cx, cy, cw, ch, Theme.Surface);
 
         // Display numérico chanfrado afundado (Sunken)
-        int dispX = cx + 8;
-        int dispY = cy + 8;
-        int dispW = cw - 16;
-        int dispH = 26;
+        int dispX = cx + 12;
+        int dispY = cy + 12;
+        int dispW = cw - 24;
+        int dispH = 46;
 
         display.DrawFilledRectangle(dispX, dispY, dispW, dispH, Color.White);
         display.Draw3DBevel(dispX, dispY, dispW, dispH, true);
 
-        // Texto do display alinhado à direita
-        int textW = _displayText.Length * Font8x12.Width;
-        int textX = Math.Max(dispX + 4, dispX + dispW - textW - 6);
-        display.DrawString(textX, dispY + 7, _displayText, Color.Black);
+        // Texto do display alinhado à direita ampliado em 2x
+        int textW = _displayText.Length * (CosmosNativeFont.Width * 2);
+        int textX = Math.Max(dispX + 8, dispX + dispW - textW - 10);
+        display.DrawStringScale(textX, dispY + 7, _displayText, Color.Black, 2);
 
         // Grade de Botões
-        int gridX = cx + 8;
-        int gridY = dispY + dispH + 10;
-        int btnW = (dispW - 12) / 4;
-        int btnH = 24;
+        int gridX = cx + 12;
+        int gridY = dispY + dispH + 14;
+        int btnW = (dispW - 18) / 4;
+        int btnH = 44;
 
         for (int r = 0; r < 5; r++)
         {
             for (int c = 0; c < 4; c++)
             {
-                if (r == 4 && c == 3) continue; // O botão '=' ocupa duas posições ou é duplo
+                if (r == 4 && c == 3) continue;
 
-                int bx = gridX + (c * (btnW + 4));
-                int by = gridY + (r * (btnH + 4));
-                int currentBtnW = (r == 4 && c == 2) ? (btnW * 2 + 4) : btnW;
+                int bx = gridX + (c * (btnW + 6));
+                int by = gridY + (r * (btnH + 6));
+                int currentBtnW = (r == 4 && c == 2) ? (btnW * 2 + 6) : btnW;
 
                 string label = _buttons[r, c];
-                display.DrawButton(bx, by, currentBtnW, btnH, label, false);
+                bool isOp = label == "=" || label == "+" || label == "-" || label == "*" || label == "/";
+                display.DrawModernButton(bx, by, currentBtnW, btnH, label, isAccent: isOp);
             }
         }
     }
@@ -82,11 +83,11 @@ public class CalculatorApp : Window
         int cx = ClientX;
         int cy = ClientY;
         int cw = ClientWidth;
-        int dispW = cw - 16;
-        int gridX = cx + 8;
-        int gridY = cy + 8 + 26 + 10;
-        int btnW = (dispW - 12) / 4;
-        int btnH = 24;
+        int dispW = cw - 24;
+        int gridX = cx + 12;
+        int gridY = cy + 12 + 46 + 14;
+        int btnW = (dispW - 18) / 4;
+        int btnH = 44;
 
         for (int r = 0; r < 5; r++)
         {
@@ -94,9 +95,9 @@ public class CalculatorApp : Window
             {
                 if (r == 4 && c == 3) continue;
 
-                int bx = gridX + (c * (btnW + 4));
-                int by = gridY + (r * (btnH + 4));
-                int currentBtnW = (r == 4 && c == 2) ? (btnW * 2 + 4) : btnW;
+                int bx = gridX + (c * (btnW + 6));
+                int by = gridY + (r * (btnH + 6));
+                int currentBtnW = (r == 4 && c == 2) ? (btnW * 2 + 6) : btnW;
 
                 if (mouseX >= bx && mouseX <= bx + currentBtnW && mouseY >= by && mouseY <= by + btnH)
                 {

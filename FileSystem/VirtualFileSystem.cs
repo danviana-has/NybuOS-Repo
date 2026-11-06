@@ -28,6 +28,22 @@ public class VirtualFileSystem
         InitializeDefaultStructure();
         _rootMount = @"0:\";
         _isRealVfsMounted = false;
+
+        try
+        {
+            var hdd = HardDiskInstaller.FindTargetHardDisk();
+            if (hdd != null)
+            {
+                byte[] mbr = new byte[512];
+                hdd.ReadBlock(0, 1, mbr);
+                if (mbr[510] == 0x55 && mbr[511] == 0xAA && mbr[446] == 0x80)
+                {
+                    _isRealVfsMounted = true;
+                }
+            }
+        }
+        catch { }
+
         SyncFactoryFiles();
     }
 

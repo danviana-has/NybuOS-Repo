@@ -14,8 +14,8 @@ public class DesktopIcon
     public Func<IconImage> IconResolver { get; set; }
     public int X { get; set; }
     public int Y { get; set; }
-    public int Width { get; set; } = 84;
-    public int Height { get; set; } = 80;
+    public int Width { get; set; } = 104;
+    public int Height { get; set; } = 106;
 
     public Action OnClick { get; set; }
 
@@ -36,24 +36,26 @@ public class DesktopIcon
     public void Draw(DisplayDriver display)
     {
         var icon = IconResolver?.Invoke();
+        int iconBottom = Y + 56;
         if (icon != null)
         {
-            // Placa/fundo escuro translúcido para o ícone
+            // Placa/fundo claro de vidro translúcido para o ícone
             int iconX = X + (Width - icon.Width) / 2;
-            int iconY = Y + 6;
-            display.DrawFilledRectangle(iconX - 6, iconY - 4, icon.Width + 12, icon.Height + 8, Color.FromArgb(20, 20, 28));
-            display.DrawRectangle(iconX - 6, iconY - 4, icon.Width + 12, icon.Height + 8, Color.FromArgb(45, 45, 60));
+            int iconY = Y + 8;
+            display.DrawFrostedGlass(iconX - 6, iconY - 6, icon.Width + 12, icon.Height + 12, Theme.SurfaceLight, alpha: 220, cornerRadius: 8);
+            display.DrawRectangle(iconX - 6, iconY - 6, icon.Width + 12, icon.Height + 12, Theme.ShadowBorder);
             display.DrawIcon(iconX, iconY, icon);
+            iconBottom = iconY + icon.Height;
         }
 
-        // Fundo do texto em cápsula escura para leitura 100% nítida
-        int textW = Title.Length * 8;
-        int badgeW = textW + 12;
+        // Fundo do texto em cápsula de vidro fosco claro para leitura 100% nítida em Full HD
+        int textW = Title.Length * CosmosNativeFont.Width;
+        int badgeW = textW + 16;
         int badgeX = X + Math.Max(0, (Width - badgeW) / 2);
-        int badgeY = Y + 50;
+        int badgeY = iconBottom + 8;
 
-        display.DrawFilledRectangle(badgeX, badgeY, badgeW, 20, Color.FromArgb(16, 16, 24));
-        display.DrawRectangle(badgeX, badgeY, badgeW, 20, Color.FromArgb(40, 40, 55));
-        display.DrawString(badgeX + 6, badgeY + 2, Title, Color.White);
+        display.DrawFrostedGlass(badgeX, badgeY, badgeW, 24, Theme.Surface, alpha: 240, cornerRadius: 6);
+        display.DrawRectangle(badgeX, badgeY, badgeW, 24, Theme.ShadowBorder);
+        display.DrawString(badgeX + 8, badgeY + 4, Title, Theme.TextPrimary);
     }
 }

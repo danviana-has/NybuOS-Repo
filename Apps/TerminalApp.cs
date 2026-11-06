@@ -23,7 +23,7 @@ public class TerminalApp : Window
     private bool _cursorVisible = true;
 
     public TerminalApp(int id, int x, int y, VirtualFileSystem vfs)
-        : base(id, "Prompt de Comando - NybuOS Shell", x, y, 420, 260)
+        : base(id, "Prompt de Comando - NybuOS Shell", x, y, 780, 480)
     {
         Icon = IconResources.Terminal16;
         _vfs = vfs;

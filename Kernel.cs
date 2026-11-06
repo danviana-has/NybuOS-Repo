@@ -25,6 +25,7 @@ public class Kernel : Cosmos.Kernel.System.Kernel
 
     private readonly List<DesktopIcon> _desktopIcons = new List<DesktopIcon>();
     private int _nextWindowId = 1;
+    private bool _isSetupMode = false;
 
     private IconImage? _scaledWallpaper = null;
 
@@ -46,10 +47,10 @@ public class Kernel : Cosmos.Kernel.System.Kernel
 
         DrawBootSplashScreen("Carregando recursos visuais...", 50);
 
-        // Carrega o wallpaper nativo de 800x564
+        // Carrega o wallpaper nativo Full HD 1920x1080
         try
         {
-            _scaledWallpaper = WallpaperResources.GetScaledWallpaper(_display.Width, _display.Height - Taskbar.Height);
+            _scaledWallpaper = WallpaperResources.GetScaledWallpaper(_display.Width, _display.Height);
         }
         catch
         {
@@ -78,8 +79,24 @@ public class Kernel : Cosmos.Kernel.System.Kernel
         // Som de inicialização pelo PC Speaker / sintetizador
         SoundDriver.PlayStartupSound();
 
-        // Abre inicialmente apenas o Painel de Controle para não poluir a tela
-        LaunchControlPanel();
+        // Verifica se o sistema já está instalado no HD ou se deve iniciar no assistente de instalação inicial
+        bool isAlreadyInstalled = false;
+        try
+        {
+            isAlreadyInstalled = _vfs.IsMounted && _vfs.FileExists(@"0:\nybuos\installed.tag");
+        }
+        catch { }
+
+        if (!isAlreadyInstalled)
+        {
+            _isSetupMode = true;
+            LaunchInstaller();
+        }
+        else
+        {
+            _isSetupMode = false;
+            LaunchControlPanel();
+        }
     }
 
     private void DrawBootSplashScreen(string message, int progress)
@@ -102,12 +119,12 @@ public class Kernel : Cosmos.Kernel.System.Kernel
             }
 
             // Nome do Sistema Operacional
-            string title = "NybuOS";
+            string title = "NybuOS RV";
             int titleW = title.Length * CosmosNativeFont.Width;
             _display.DrawString(cx - (titleW / 2), cy + 44, title, Color.White);
 
             // Slogan
-            string slogan = "Simplicidade, Estabilidade e Elegancia";
+            string slogan = "Revolution Edition - Full HD";
             int sloganW = slogan.Length * CosmosNativeFont.Width;
             _display.DrawString(cx - (sloganW / 2), cy + 64, slogan, Color.FromArgb(148, 163, 184));
 
@@ -116,7 +133,7 @@ public class Kernel : Cosmos.Kernel.System.Kernel
             _display.DrawString(cx - (msgW / 2), cy + 104, message, Color.FromArgb(96, 165, 250));
 
             // Barra de progresso moderna
-            int barW = 220;
+            int barW = 240;
             int barH = 6;
             int barX = cx - (barW / 2);
             int barY = cy + 126;
@@ -138,7 +155,25 @@ public class Kernel : Cosmos.Kernel.System.Kernel
         try
         {
             _vfs.CreateDirectory(@"C:\Documents");
-            _vfs.WriteFile(@"C:\Documents\Readme.txt", "NybuOS v3.0 Modern Edition\nSistema Operacional em C# com Cosmos OS.");
+            _vfs.WriteFile(@"C:\Documents\Readme.txt", "NybuOS RV (Revolution) - Full HD\nSistema Operacional Moderno em C# com Cosmos OS.\nFonte Arial PSF e novos ícones PNG nativos.");
+
+            _vfs.CreateDirectory(@"C:\fonts");
+            _vfs.WriteFile(@"C:\fonts\fonte.psf", EmbeddedFontData.FontePsf);
+
+            _vfs.CreateDirectory(@"C:\icons");
+            var allIcons = EmbeddedIconData.GetAll();
+            foreach (var kvp in allIcons)
+            {
+                _vfs.WriteFile(@"C:\icons\" + kvp.Key, kvp.Value);
+            }
+
+            // Grava o papel de parede oficial no disco FAT32 (BMP e JPG)
+            byte[]? wallBytes = EmbeddedWallpaperData.GetWallpaperBmpBytes();
+            if (wallBytes != null && wallBytes.Length > 0)
+            {
+                _vfs.WriteFile(@"C:\wallpaper.bmp", wallBytes);
+                _vfs.WriteFile(@"C:\Documents\wallpaper.bmp", wallBytes);
+            }
         }
         catch
         {
@@ -149,59 +184,21 @@ public class Kernel : Cosmos.Kernel.System.Kernel
     {
         _desktopIcons.Clear();
 
-        int startX = 20;
-        int startY = 20;
-        int spacingY = 90;
-        int col2X = startX + 105;
+        int startX = _display.Width - 134;
+        int startY = Taskbar.TopBarHeight + 24;
+        int spacingY = 130;
 
-        // Coluna 1
-        _desktopIcons.Add(new DesktopIcon("Arquivos", () => IconResources.FileManager32, startX, startY, () =>
+        _desktopIcons.Add(new DesktopIcon("NybuHD", () => IconResources.Installer32, startX, startY, () =>
+        {
+            LaunchFileManager(@"C:\");
+        }));
+
+        _desktopIcons.Add(new DesktopIcon("Documentos", () => IconResources.FileManager32, startX, startY + spacingY, () =>
         {
             LaunchFileManager(@"C:\Documents");
         }));
 
-        _desktopIcons.Add(new DesktopIcon("Ajustes", () => IconResources.ControlPanel32, startX, startY + spacingY, () =>
-        {
-            LaunchControlPanel();
-        }));
-
-        _desktopIcons.Add(new DesktopIcon("Editor", () => IconResources.TextEditor32, startX, startY + (spacingY * 2), () =>
-        {
-            LaunchTextEditor(null);
-        }));
-
-        _desktopIcons.Add(new DesktopIcon("PaintPad", () => IconResources.PaintPad32, startX, startY + (spacingY * 3), () =>
-        {
-            LaunchPaintPad();
-        }));
-
-        _desktopIcons.Add(new DesktopIcon("Terminal", () => IconResources.Terminal32, startX, startY + (spacingY * 4), () =>
-        {
-            LaunchTerminal();
-        }));
-
-        // Coluna 2
-        _desktopIcons.Add(new DesktopIcon("Midia", () => IconResources.Media32, col2X, startY, () =>
-        {
-            LaunchMediaReproduction();
-        }));
-
-        _desktopIcons.Add(new DesktopIcon("Minas", () => IconResources.CentralLogic32, col2X, startY + spacingY, () =>
-        {
-            LaunchCentralLogic();
-        }));
-
-        _desktopIcons.Add(new DesktopIcon("Calculadora", () => IconResources.Calculator32, col2X, startY + (spacingY * 2), () =>
-        {
-            LaunchCalculator();
-        }));
-
-        _desktopIcons.Add(new DesktopIcon("Planilha", () => IconResources.Spreadsheet32, col2X, startY + (spacingY * 3), () =>
-        {
-            LaunchSpreadsheet();
-        }));
-
-        _desktopIcons.Add(new DesktopIcon("Instalar", () => IconResources.Installer32, col2X, startY + (spacingY * 4), () =>
+        _desktopIcons.Add(new DesktopIcon("Instalar", () => IconResources.Installer32, startX, startY + (spacingY * 2), () =>
         {
             LaunchInstaller();
         }));
@@ -252,7 +249,7 @@ public class Kernel : Cosmos.Kernel.System.Kernel
 
     public void LaunchFileManager(string path)
     {
-        var app = new FileManagerApp(_nextWindowId++, 70, 50, _vfs, (targetFile) =>
+        var app = new FileManagerApp(_nextWindowId++, 280, 100, _vfs, (targetFile) =>
         {
             LaunchTextEditor(targetFile);
         });
@@ -265,61 +262,70 @@ public class Kernel : Cosmos.Kernel.System.Kernel
 
     public void LaunchTextEditor(string? filePath)
     {
-        var app = new TextEditorApp(_nextWindowId++, 140, 70, _vfs, _windowManager, filePath);
+        var app = new TextEditorApp(_nextWindowId++, 360, 120, _vfs, _windowManager, filePath);
         _windowManager.AddWindow(app);
     }
 
     public void LaunchPaintPad()
     {
-        var app = new PaintPadApp(_nextWindowId++, 160, 80, _vfs);
+        var app = new PaintPadApp(_nextWindowId++, 320, 90, _vfs);
         _windowManager.AddWindow(app);
     }
 
     public void LaunchMediaReproduction()
     {
-        var app = new MediaReproductionApp(_nextWindowId++, 150, 90, _vfs);
+        var app = new MediaReproductionApp(_nextWindowId++, 350, 110, _vfs);
         _windowManager.AddWindow(app);
     }
 
     public void LaunchControlPanel()
     {
-        var app = new ControlPanelApp(_nextWindowId++, 160, 40, _display);
+        var app = new ControlPanelApp(_nextWindowId++, 380, 100, _display);
         _windowManager.AddWindow(app);
     }
 
     public void LaunchCentralLogic()
     {
-        var app = new CentralLogicApp(_nextWindowId++, 170, 70);
+        var app = new CentralLogicApp(_nextWindowId++, 580, 160);
         _windowManager.AddWindow(app);
     }
 
     public void LaunchSpreadsheet()
     {
-        var app = new SpreadsheetApp(_nextWindowId++, 100, 80, _vfs, _windowManager);
+        var app = new SpreadsheetApp(_nextWindowId++, 340, 110, _vfs, _windowManager);
         _windowManager.AddWindow(app);
     }
 
     public void LaunchCalculator()
     {
-        var app = new CalculatorApp(_nextWindowId++, 220, 90);
+        var app = new CalculatorApp(_nextWindowId++, 640, 140);
         _windowManager.AddWindow(app);
     }
 
     public void LaunchTerminal()
     {
-        var app = new TerminalApp(_nextWindowId++, 120, 100, _vfs);
+        var app = new TerminalApp(_nextWindowId++, 380, 120, _vfs);
         _windowManager.AddWindow(app);
     }
 
     public void LaunchInstaller()
     {
-        var app = new InstallerApp(_nextWindowId++, 180, 70, _vfs);
+        int winW = 800;
+        int winH = 560;
+        int winX = Math.Max(20, (_display.Width - winW) / 2);
+        int winY = Math.Max(40, (_display.Height - winH) / 2);
+
+        var app = new InstallerApp(_nextWindowId++, winX, winY, _vfs);
+        app.OnExitToDesktop = () =>
+        {
+            _isSetupMode = false;
+        };
         _windowManager.AddWindow(app);
     }
 
     public void LaunchAbout()
     {
-        var app = new AboutApp(_nextWindowId++, 260, 130);
+        var app = new AboutApp(_nextWindowId++, 520, 180);
         _windowManager.AddWindow(app);
     }
 
@@ -330,38 +336,46 @@ public class Kernel : Cosmos.Kernel.System.Kernel
 
         if (_mouse.JustPressedLeft)
         {
-            bool handledByTaskbar = _taskbar.HandleMouseDown(_mouse.X, _mouse.Y);
-
-            if (!handledByTaskbar)
+            if (_isSetupMode)
             {
-                if (_taskbar.IsStartMenuOpen)
-                {
-                    _taskbar.IsStartMenuOpen = false;
-                }
+                // No modo de instalação inicial, apenas as janelas respondem ao mouse
+                _windowManager.HandleMouseDown(_mouse.X, _mouse.Y);
+            }
+            else
+            {
+                bool handledByTaskbar = _taskbar.HandleMouseDown(_mouse.X, _mouse.Y, _display.Width, _display.Height);
 
-                bool windowClicked = false;
-                for (int i = _windowManager.Windows.Count - 1; i >= 0; i--)
+                if (!handledByTaskbar)
                 {
-                    var win = _windowManager.Windows[i];
-                    if (!win.IsMinimized && !win.IsClosed && win.ContainsPoint(_mouse.X, _mouse.Y))
+                    if (_taskbar.IsStartMenuOpen)
                     {
-                        windowClicked = true;
-                        break;
+                        _taskbar.IsStartMenuOpen = false;
                     }
-                }
 
-                if (windowClicked)
-                {
-                    _windowManager.HandleMouseDown(_mouse.X, _mouse.Y);
-                }
-                else
-                {
-                    foreach (var icon in _desktopIcons)
+                    bool windowClicked = false;
+                    for (int i = _windowManager.Windows.Count - 1; i >= 0; i--)
                     {
-                        if (icon.ContainsPoint(_mouse.X, _mouse.Y))
+                        var win = _windowManager.Windows[i];
+                        if (!win.IsMinimized && !win.IsClosed && win.ContainsPoint(_mouse.X, _mouse.Y))
                         {
-                            icon.OnClick?.Invoke();
+                            windowClicked = true;
                             break;
+                        }
+                    }
+
+                    if (windowClicked)
+                    {
+                        _windowManager.HandleMouseDown(_mouse.X, _mouse.Y);
+                    }
+                    else
+                    {
+                        foreach (var icon in _desktopIcons)
+                        {
+                            if (icon.ContainsPoint(_mouse.X, _mouse.Y))
+                            {
+                                icon.OnClick?.Invoke();
+                                break;
+                            }
                         }
                     }
                 }
@@ -383,33 +397,35 @@ public class Kernel : Cosmos.Kernel.System.Kernel
             _windowManager.HandleKeyDown(keyEvent);
         }
 
-        // Renderização com Double Buffering ultra-rápido
+        // Renderização com Double Buffering ultra-rápido Full HD
         if (_scaledWallpaper != null)
         {
             _display.DrawWallpaper(_scaledWallpaper);
-            if (_scaledWallpaper.Height < _display.Height)
-            {
-                _display.DrawFilledRectangle(0, _scaledWallpaper.Height, _display.Width, _display.Height - _scaledWallpaper.Height, Theme.TaskbarBg);
-            }
         }
         else
         {
-            _display.Clear(Color.FromArgb(16, 16, 22));
+            _display.Clear(Color.FromArgb(16, 18, 26));
         }
 
-        // Desenha os ícones da área de trabalho
-        for (int i = 0; i < _desktopIcons.Count; i++)
+        if (!_isSetupMode)
         {
-            _desktopIcons[i].Draw(_display);
+            // Desenha os ícones da área de trabalho
+            for (int i = 0; i < _desktopIcons.Count; i++)
+            {
+                _desktopIcons[i].Draw(_display);
+            }
         }
 
-        // Janelas
+        // Janelas (com efeito de vidro fosco e botões circulares)
         _windowManager.DrawAll(_display);
 
-        // Barra de tarefas com coordenadas de mouse para hover e atualização limpa
-        _taskbar.Draw(_display, _mouse.X, _mouse.Y);
+        if (!_isSetupMode)
+        {
+            // Barra Superior + Dock Flutuante estilo macOS
+            _taskbar.Draw(_display, _mouse.X, _mouse.Y);
+        }
 
-        // Cursor do mouse
+        // Cursor do mouse estilo macOS
         _display.DrawCursor(_mouse.X, _mouse.Y);
 
         // Apresenta tela

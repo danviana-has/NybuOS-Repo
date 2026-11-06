@@ -23,7 +23,7 @@ public class FileManagerApp : Window
     private int _selectedIndex = -1;
 
     public FileManagerApp(int id, int x, int y, VirtualFileSystem vfs, Action<string> openTextEditorCallback)
-        : base(id, "Gerenciador de Arquivos", x, y, 380, 280)
+        : base(id, "Gerenciador de Arquivos", x, y, 760, 500)
     {
         Icon = IconResources.Computer16;
         _vfs = vfs;
@@ -54,31 +54,31 @@ public class FileManagerApp : Window
         // Fundo da área do cliente
         display.DrawFilledRectangle(cx, cy, cw, ch, Theme.Surface);
 
-        // Barra de Ferramentas com botões
-        display.DrawButton(cx + 4, cy + 4, 55, 20, "Voltar", false);
-        display.DrawButton(cx + 63, cy + 4, 75, 20, "Novo Arq", false);
-        display.DrawButton(cx + 142, cy + 4, 65, 20, "Atualizar", false);
+        // Barra de Ferramentas com botões ampliados
+        display.DrawModernButton(cx + 6, cy + 6, 85, 30, "Voltar", false);
+        display.DrawModernButton(cx + 97, cy + 6, 110, 30, "Novo Arq", false);
+        display.DrawModernButton(cx + 213, cy + 6, 110, 30, "Atualizar", false);
 
         // Caixa de texto do caminho atual (Sunken)
-        int pathBoxY = cy + 28;
-        display.DrawFilledRectangle(cx + 4, pathBoxY, cw - 8, 20, Color.White);
-        display.Draw3DBevel(cx + 4, pathBoxY, cw - 8, 20, true);
+        int pathBoxY = cy + 42;
+        display.DrawFilledRectangle(cx + 6, pathBoxY, cw - 12, 24, Color.White);
+        display.Draw3DBevel(cx + 6, pathBoxY, cw - 12, 24, true);
 
         if (IconResources.Drive16 != null)
         {
-            display.DrawIcon(cx + 7, pathBoxY + 2, IconResources.Drive16);
-            display.DrawString(cx + 26, pathBoxY + 4, _currentPath, Color.Black);
+            display.DrawIcon(cx + 10, pathBoxY + 4, IconResources.Drive16);
+            display.DrawString(cx + 32, pathBoxY + 5, _currentPath, Color.Black);
         }
         else
         {
-            display.DrawString(cx + 8, pathBoxY + 4, _currentPath, Color.Black);
+            display.DrawString(cx + 10, pathBoxY + 5, _currentPath, Color.Black);
         }
 
         // Área da Lista de Arquivos (Sunken branca)
-        int listY = cy + 52;
-        int listH = ch - 56;
-        display.DrawFilledRectangle(cx + 4, listY, cw - 8, listH, Color.White);
-        display.Draw3DBevel(cx + 4, listY, cw - 8, listH, true);
+        int listY = cy + 72;
+        int listH = ch - 78;
+        display.DrawFilledRectangle(cx + 6, listY, cw - 12, listH, Color.White);
+        display.Draw3DBevel(cx + 6, listY, cw - 12, listH, true);
 
         int itemY = listY + 4;
         int index = 0;
@@ -165,7 +165,7 @@ public class FileManagerApp : Window
         int cy = ClientY;
 
         // Botão Voltar
-        if (mouseX >= cx + 4 && mouseX <= cx + 59 && mouseY >= cy + 4 && mouseY <= cy + 24)
+        if (mouseX >= cx + 6 && mouseX <= cx + 91 && mouseY >= cy + 6 && mouseY <= cy + 36)
         {
             int lastSlash = _currentPath.TrimEnd('\\').LastIndexOf('\\');
             if (lastSlash >= 2)
@@ -178,7 +178,7 @@ public class FileManagerApp : Window
         }
 
         // Botão Novo Arq
-        if (mouseX >= cx + 63 && mouseX <= cx + 138 && mouseY >= cy + 4 && mouseY <= cy + 24)
+        if (mouseX >= cx + 97 && mouseX <= cx + 207 && mouseY >= cy + 6 && mouseY <= cy + 36)
         {
             string newFilePath = _currentPath.TrimEnd('\\') + $"\\novo_{DateTime.Now.Ticks % 1000}.txt";
             _vfs.WriteFile(newFilePath, "Novo arquivo de texto criado via Explorer.\n");
@@ -187,16 +187,16 @@ public class FileManagerApp : Window
         }
 
         // Botão Atualizar
-        if (mouseX >= cx + 142 && mouseX <= cx + 207 && mouseY >= cy + 4 && mouseY <= cy + 24)
+        if (mouseX >= cx + 213 && mouseX <= cx + 323 && mouseY >= cy + 6 && mouseY <= cy + 36)
         {
             RefreshDirectory();
             return;
         }
 
         // Clique na Lista de Itens
-        int listY = cy + 52;
-        int listH = ClientHeight - 56;
-        if (mouseX >= cx + 4 && mouseX <= cx + ClientWidth - 4 && mouseY >= listY + 4 && mouseY <= listY + listH)
+        int listY = cy + 72;
+        int listH = ClientHeight - 78;
+        if (mouseX >= cx + 6 && mouseX <= cx + ClientWidth - 6 && mouseY >= listY + 4 && mouseY <= listY + listH)
         {
             int clickedRow = (mouseY - (listY + 4)) / 18;
             int totalItems = _directories.Count + _files.Count;

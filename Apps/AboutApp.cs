@@ -6,12 +6,12 @@ using NybuOS.GUI;
 namespace NybuOS.Apps;
 
 /// <summary>
-/// Janela modal "Sobre o NybuOS" com especificações e créditos.
+/// Janela "Sobre o NybuOS RV" com estética macOS sobre este sistema, especificações Full HD e créditos.
 /// </summary>
 public class AboutApp : Window
 {
     public AboutApp(int id, int x, int y)
-        : base(id, "Sobre o NybuOS", x, y, 320, 190)
+        : base(id, "Sobre o NybuOS RV", x, y, 540, 320)
     {
         Icon = IconResources.AboutIcon ?? IconResources.Help16;
     }
@@ -23,35 +23,37 @@ public class AboutApp : Window
         int cw = ClientWidth;
         int ch = ClientHeight;
 
-        display.DrawFilledRectangle(cx, cy, cw, ch, Theme.Surface);
+        // Fundo com vidro fosco refinado
+        display.DrawFrostedGlass(cx, cy, cw, ch, Theme.Surface, alpha: 220, cornerRadius: 8);
 
-        // Ícone moderno do NybuOS
-        if (IconResources.AboutIcon != null)
+        // Ícone do NybuOS RV
+        if (IconResources.AboutDock != null)
         {
-            display.DrawIcon(cx + 12, cy + 12, IconResources.AboutIcon);
+            display.DrawIcon(cx + 20, cy + 20, IconResources.AboutDock);
         }
-        else if (IconResources.Computer32 != null)
+        else if (IconResources.AboutIcon != null)
         {
-            display.DrawIcon(cx + 12, cy + 12, IconResources.Computer32);
+            display.DrawIcon(cx + 20, cy + 20, IconResources.AboutIcon);
         }
 
-        display.DrawString(cx + 48, cy + 12, "NybuOS Versao 3.0 Final", Theme.TextPrimary);
-        display.DrawString(cx + 48, cy + 28, "Simplicidade, Estabilidade e Elegancia", Theme.AccentColor);
+        display.DrawString(cx + 92, cy + 24, "NybuOS RV (Revolution)", Theme.TextPrimary);
+        display.DrawString(cx + 92, cy + 46, "Edicao Light 3D - Full HD Real", Theme.AccentColor);
 
-        display.DrawLine(cx + 10, cy + 46, cx + cw - 10, cy + 46, Theme.ButtonBorder);
+        display.DrawLine(cx + 18, cy + 90, cx + cw - 18, cy + 90, Theme.DockSeparator);
 
-        display.DrawString(cx + 12, cy + 54, "Sistema Operacional em C# Nativo", Theme.TextPrimary);
-        display.DrawString(cx + 12, cy + 68, "Cosmos OS Engine (x86_64 AOT)", Theme.TextSecondary);
-        display.DrawString(cx + 12, cy + 82, "Resolucao: 800x600 32bpp Dark Glass", Theme.TextSecondary);
-        display.DrawString(cx + 12, cy + 96, "VFS FAT32 + Gerenciador de Janelas", Theme.TextSecondary);
+        display.DrawString(cx + 24, cy + 104, "Resolucao: Full HD REAL 1920x1080 32bpp nativo", Theme.TextPrimary);
+        display.DrawString(cx + 24, cy + 128, "Interface: Barra 3D Degradê, Dock Cinza Claro, Janelas Light", Theme.TextSecondary);
+        display.DrawString(cx + 24, cy + 152, "Recursos: Decodificador JPG + PNG + BMP integrados", Theme.TextSecondary);
+        display.DrawString(cx + 24, cy + 176, "Tipografia: Fonte Arial PSF de Alta Precisao", Theme.TextSecondary);
+        display.DrawString(cx + 24, cy + 200, "Kernel: C# Nativo x86_64 Cosmos OS com VFS FAT32", Theme.TextSecondary);
 
-        // Botão OK
-        int btnW = 70;
-        int btnH = 24;
+        // Botão Fechar ampliado para Full HD
+        int btnW = 120;
+        int btnH = 34;
         int btnX = cx + (cw - btnW) / 2;
-        int btnY = cy + ch - 30;
+        int btnY = cy + ch - 48;
 
-        display.DrawModernButton(btnX, btnY, btnW, btnH, "OK", true);
+        display.DrawModernButton(btnX, btnY, btnW, btnH, "Fechar", true);
     }
 
     public override void OnMouseDown(int mouseX, int mouseY)
@@ -60,14 +62,14 @@ public class AboutApp : Window
         int cy = ClientY;
         int cw = ClientWidth;
         int ch = ClientHeight;
-        int btnW = 60;
-        int btnH = 22;
+        int btnW = 120;
+        int btnH = 34;
         int btnX = cx + (cw - btnW) / 2;
-        int btnY = cy + ch - 30;
+        int btnY = cy + ch - 48;
 
         if (mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH)
         {
-            IsClosed = true;
+            Close();
         }
     }
 }
