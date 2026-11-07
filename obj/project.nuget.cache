@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "9C+5b7Qrbaw=",
+  "dgSpecHash": "0kokOeeUzGk=",
   "success": true,
   "projectFilePath": "C:\\Users\\dvian\\OneDrive\\Documentos\\Desktop\\ProjetosGui\\NybuOS\\NybuOS\\NybuOS.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\dvian\\.nuget\\packages\\bouncycastle.cryptography\\2.7.0\\bouncycastle.cryptography.2.7.0.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\cosmos.build.api\\3.0.95\\cosmos.build.api.3.0.95.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\cosmos.build.asm\\3.0.95\\cosmos.build.asm.3.0.95.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\cosmos.build.cc\\3.0.95\\cosmos.build.cc.3.0.95.nupkg.sha512",
@@ -23,6 +24,7 @@
     "C:\\Users\\dvian\\.nuget\\packages\\cosmos.kernel.plugs\\3.0.95\\cosmos.kernel.plugs.3.0.95.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\cosmos.kernel.sourcegenerators\\3.0.95\\cosmos.kernel.sourcegenerators.3.0.95.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\cosmos.kernel.system\\3.0.95\\cosmos.kernel.system.3.0.95.nupkg.sha512",
+    "C:\\Users\\dvian\\.nuget\\packages\\cosmos.network.http\\3.0.0\\cosmos.network.http.3.0.0.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\microsoft.codeanalysis.analyzers\\3.11.0\\microsoft.codeanalysis.analyzers.3.11.0.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\microsoft.codeanalysis.common\\4.14.0\\microsoft.codeanalysis.common.4.14.0.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\microsoft.codeanalysis.csharp\\4.14.0\\microsoft.codeanalysis.csharp.4.14.0.nupkg.sha512",

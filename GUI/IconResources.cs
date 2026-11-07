@@ -22,6 +22,7 @@ public static class IconResources
     public static IconImage CalculatorDock { get; private set; } = null!;
     public static IconImage TerminalDock { get; private set; } = null!;
     public static IconImage InstallerDock { get; private set; } = null!;
+    public static IconImage UpdaterDock { get; private set; } = null!;
     public static IconImage AboutDock { get; private set; } = null!;
     public static IconImage TrashDock { get; private set; } = null!;
     public static IconImage ShutdownDock { get; private set; } = null!;
@@ -46,6 +47,7 @@ public static class IconResources
     public static IconImage CalculatorIcon { get; private set; } = null!;
     public static IconImage TerminalIcon { get; private set; } = null!;
     public static IconImage InstallerIcon { get; private set; } = null!;
+    public static IconImage UpdaterIcon { get; private set; } = null!;
     public static IconImage AboutIcon { get; private set; } = null!;
     public static IconImage ShutdownIcon { get; private set; } = null!;
 
@@ -63,6 +65,7 @@ public static class IconResources
     public static IconImage Minesweeper16 { get; private set; } = null!;
     public static IconImage Spreadsheet16 { get; private set; } = null!;
     public static IconImage Installer16 { get; private set; } = null!;
+    public static IconImage Updater16 { get; private set; } = null!;
     public static IconImage Help16 { get; private set; } = null!;
 
     // Ícones de 32x32 / 48x48 para Área de Trabalho
@@ -80,6 +83,7 @@ public static class IconResources
     public static IconImage Calculator32 { get; private set; } = null!;
     public static IconImage Terminal32 { get; private set; } = null!;
     public static IconImage Installer32 { get; private set; } = null!;
+    public static IconImage Updater32 { get; private set; } = null!;
     public static IconImage Recycle32 { get; private set; } = null!;
 
     // Logo especial de Splash Boot Screen (64x64)
@@ -110,6 +114,7 @@ public static class IconResources
         CalculatorDock = LoadPng(EmbeddedIconData.calculator, 60, CreateCalculatorIcon);
         TerminalDock = LoadPng(EmbeddedIconData.terminal, 60, CreateTerminalIcon);
         InstallerDock = LoadPng(EmbeddedIconData.InstallerApp, 60, CreateInstallerIcon);
+        UpdaterDock = CreateUpdaterIcon(60);
         AboutDock = LoadPng(EmbeddedIconData.AboutApp, 60, CreateAboutIcon);
         TrashDock = CreateTrashIcon(60);
         ShutdownDock = CreatePowerIcon(60);
@@ -133,6 +138,7 @@ public static class IconResources
         CalculatorIcon = LoadPng(EmbeddedIconData.calculator, 24, CreateCalculatorIcon);
         TerminalIcon = LoadPng(EmbeddedIconData.terminal, 24, CreateTerminalIcon);
         InstallerIcon = LoadPng(EmbeddedIconData.InstallerApp, 24, CreateInstallerIcon);
+        UpdaterIcon = CreateUpdaterIcon(24);
         AboutIcon = LoadPng(EmbeddedIconData.AboutApp, 24, CreateAboutIcon);
         ShutdownIcon = CreatePowerIcon(24);
 
@@ -150,6 +156,7 @@ public static class IconResources
         Minesweeper16 = LoadPng(EmbeddedIconData.CentralLogic, 16, CreateCentralLogicIcon);
         Spreadsheet16 = LoadPng(EmbeddedIconData.spreadsheet, 16, CreateSpreadsheetIcon);
         Installer16 = LoadPng(EmbeddedIconData.InstallerApp, 16, CreateInstallerIcon);
+        Updater16 = CreateUpdaterIcon(16);
         Help16 = LoadPng(EmbeddedIconData.AboutApp, 16, CreateAboutIcon);
 
         // 5. Ícones da Área de Trabalho (48x48)
@@ -167,6 +174,7 @@ public static class IconResources
         Calculator32 = LoadPng(EmbeddedIconData.calculator, 48, CreateCalculatorIcon);
         Terminal32 = LoadPng(EmbeddedIconData.terminal, 48, CreateTerminalIcon);
         Installer32 = LoadPng(EmbeddedIconData.InstallerApp, 48, CreateInstallerIcon);
+        Updater32 = CreateUpdaterIcon(48);
         Recycle32 = CreateTrashIcon(48);
 
         // 6. Boot Logo (64x64)
@@ -680,6 +688,42 @@ public static class IconResources
     /// <summary>
     /// Ícone Sobre o NybuOS: Brasão monograma "N" em degradê violeta e azul safira.
     /// </summary>
+
+    /// <summary>
+    /// Ícone NybuOS Update: Gradiente violeta e anel de sincronização circular com seta de download.
+    /// </summary>
+    public static IconImage CreateUpdaterIcon(int size)
+    {
+        var img = CreateSquircleBase(size, Color.FromArgb(79, 70, 229), Color.FromArgb(124, 58, 237));
+        int cx = size / 2;
+        int cy = size / 2;
+
+        int radius = size * 28 / 100;
+        for (int angle = 20; angle <= 340; angle += 6)
+        {
+            double rad = angle * 3.14159265 / 180.0;
+            int px = cx + (int)(radius * Math.Cos(rad));
+            int py = cy + (int)(radius * Math.Sin(rad));
+            img.SetPixel(px, py, 0xFFFFFFFF);
+            img.SetPixel(px + 1, py, 0xFFFFFFFF);
+        }
+
+        int arrowH = size * 24 / 100;
+        for (int y = cy - arrowH / 2; y <= cy + arrowH / 2; y++)
+        {
+            img.SetPixel(cx, y, 0xFFFFFFFF);
+            img.SetPixel(cx - 1, y, 0xFFFFFFFF);
+        }
+        for (int d = 1; d <= 4; d++)
+        {
+            img.SetPixel(cx - d, cy + arrowH / 2 - d, 0xFF38BDF8);
+            img.SetPixel(cx + d, cy + arrowH / 2 - d, 0xFF38BDF8);
+            img.SetPixel(cx - 1 - d, cy + arrowH / 2 - d, 0xFF38BDF8);
+        }
+
+        return img;
+    }
+
     public static IconImage CreateAboutIcon(int size)
     {
         var img = CreateSquircleBase(size, Color.FromArgb(99, 102, 241), Color.FromArgb(67, 56, 202));

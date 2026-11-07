@@ -100,6 +100,10 @@
               "target": "Package",
               "version": "[3.0.95, )"
             },
+            "Cosmos.Network.Http": {
+              "target": "Package",
+              "version": "[3.0.0, )"
+            },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",

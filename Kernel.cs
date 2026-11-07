@@ -26,6 +26,7 @@ public class Kernel : Cosmos.Kernel.System.Kernel
     private readonly List<DesktopIcon> _desktopIcons = new List<DesktopIcon>();
     private int _nextWindowId = 1;
     private bool _isSetupMode = false;
+    private bool _isInstalled = false;
 
     private IconImage? _scaledWallpaper = null;
 
@@ -67,8 +68,12 @@ public class Kernel : Cosmos.Kernel.System.Kernel
 
         DrawBootSplashScreen("Iniciando subsistema de janelas...", 90);
 
+        // Verifica se o sistema operacional já está instalado no HD ou se está em modo de instalação
+        _isInstalled = HardDiskInstaller.IsSystemInstalledOnHardDisk();
+
         _windowManager = new WindowManager();
         _taskbar = new Taskbar(_windowManager);
+        _taskbar.SetInstalledMode(_isInstalled);
 
         _taskbar.OnMenuItemSelected += HandleStartMenuItem;
 
@@ -79,15 +84,7 @@ public class Kernel : Cosmos.Kernel.System.Kernel
         // Som de inicialização pelo PC Speaker / sintetizador
         SoundDriver.PlayStartupSound();
 
-        // Verifica se o sistema já está instalado no HD ou se deve iniciar no assistente de instalação inicial
-        bool isAlreadyInstalled = false;
-        try
-        {
-            isAlreadyInstalled = _vfs.IsMounted && _vfs.FileExists(@"0:\nybuos\installed.tag");
-        }
-        catch { }
-
-        if (!isAlreadyInstalled)
+        if (!_isInstalled)
         {
             _isSetupMode = true;
             LaunchInstaller();
@@ -95,7 +92,7 @@ public class Kernel : Cosmos.Kernel.System.Kernel
         else
         {
             _isSetupMode = false;
-            LaunchControlPanel();
+            // Modo HD permanente: o instalador não é aberto e o sistema inicia diretamente na Área de Trabalho limpa
         }
     }
 
@@ -198,10 +195,14 @@ public class Kernel : Cosmos.Kernel.System.Kernel
             LaunchFileManager(@"C:\Documents");
         }));
 
-        _desktopIcons.Add(new DesktopIcon("Instalar", () => IconResources.Installer32, startX, startY + (spacingY * 2), () =>
+        // O ícone do instalador SÓ é exibido na Área de Trabalho quando o sistema estiver rodando da ISO Live
+        if (!_isInstalled)
         {
-            LaunchInstaller();
-        }));
+            _desktopIcons.Add(new DesktopIcon("Instalar", () => IconResources.Installer32, startX, startY + (spacingY * 2), () =>
+            {
+                LaunchInstaller();
+            }));
+        }
     }
 
     private void HandleStartMenuItem(StartMenuItem item)
@@ -237,6 +238,9 @@ public class Kernel : Cosmos.Kernel.System.Kernel
                 break;
             case StartMenuItem.Installer:
                 LaunchInstaller();
+                break;
+            case StartMenuItem.Updater:
+                LaunchUpdater();
                 break;
             case StartMenuItem.About:
                 LaunchAbout();
@@ -310,6 +314,8 @@ public class Kernel : Cosmos.Kernel.System.Kernel
 
     public void LaunchInstaller()
     {
+        if (_isInstalled) return;
+
         int winW = 800;
         int winH = 560;
         int winX = Math.Max(20, (_display.Width - winW) / 2);
@@ -320,6 +326,17 @@ public class Kernel : Cosmos.Kernel.System.Kernel
         {
             _isSetupMode = false;
         };
+        _windowManager.AddWindow(app);
+    }
+
+    public void LaunchUpdater()
+    {
+        int winW = 620;
+        int winH = 400;
+        int winX = Math.Max(20, (_display.Width - winW) / 2);
+        int winY = Math.Max(40, (_display.Height - winH) / 2);
+
+        var app = new UpdaterApp(_nextWindowId++, winX, winY);
         _windowManager.AddWindow(app);
     }
 

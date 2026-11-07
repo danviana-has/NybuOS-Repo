@@ -18,6 +18,7 @@ public enum StartMenuItem
     Calculator,
     Terminal,
     Installer,
+    Updater,
     About,
     Shutdown
 }
@@ -70,6 +71,7 @@ public class Taskbar
         new DockItem("Calculadora", StartMenuItem.Calculator, () => IconResources.CalculatorDock),
         new DockItem("Planilha", StartMenuItem.Spreadsheet, () => IconResources.SpreadsheetDock),
         new DockItem("Terminal", StartMenuItem.Terminal, () => IconResources.TerminalDock),
+        new DockItem("Atualizacoes", StartMenuItem.Updater, () => IconResources.UpdaterDock),
         new DockItem("Instalar no HD", StartMenuItem.Installer, () => IconResources.InstallerDock),
         new DockItem("Sobre o NybuOS", StartMenuItem.About, () => IconResources.AboutDock),
         new DockItem("Lixeira", StartMenuItem.None, () => IconResources.TrashDock, separator: true),
@@ -80,6 +82,17 @@ public class Taskbar
     {
         _windowManager = windowManager;
         IsStartMenuOpen = false;
+    }
+
+    /// <summary>
+    /// Configura os itens visíveis na barra para modo instalado no HD (remove o item do instalador).
+    /// </summary>
+    public void SetInstalledMode(bool isInstalled)
+    {
+        if (isInstalled)
+        {
+            _dockItems.RemoveAll(d => d.Item == StartMenuItem.Installer);
+        }
     }
 
     /// <summary>
@@ -329,6 +342,7 @@ public class Taskbar
         {
             "Sobre este NybuOS RV",
             "Preferencias do Sistema...",
+            "Atualizacoes do Sistema...",
             "-",
             "Reiniciar Computador...",
             "Desligar o NybuOS..."
@@ -384,7 +398,7 @@ public class Taskbar
             int itemH = 28;
 
             if (mouseX >= menuX && mouseX <= menuX + menuW &&
-                mouseY >= menuY && mouseY <= menuY + (5 * itemH) + 12)
+                mouseY >= menuY && mouseY <= menuY + (6 * itemH) + 12)
             {
                 int relY = mouseY - (menuY + 6);
                 int idx = relY / itemH;
@@ -398,10 +412,13 @@ public class Taskbar
                     case 1:
                         OnMenuItemSelected?.Invoke(StartMenuItem.ControlPanel);
                         return true;
-                    case 3:
-                        PowerDriver.Reboot();
+                    case 2:
+                        OnMenuItemSelected?.Invoke(StartMenuItem.Updater);
                         return true;
                     case 4:
+                        PowerDriver.Reboot();
+                        return true;
+                    case 5:
                         OnMenuItemSelected?.Invoke(StartMenuItem.Shutdown);
                         return true;
                 }

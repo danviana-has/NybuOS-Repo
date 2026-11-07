@@ -1,12 +1,5 @@
-$cecil = [System.Reflection.Assembly]::LoadFrom((Resolve-Path 'obj\Release\net10.0\linux-x64\cosmos\ref\Mono.Cecil.dll'))
-$drivers = [Mono.Cecil.ModuleDefinition]::ReadModule((Resolve-Path 'obj\Release\net10.0\linux-x64\cosmos\ref\Cosmos.Kernel.Drivers.dll'))
-$ahci = $drivers.GetType('Cosmos.Kernel.Drivers.Pci.Storage.Ahci.AhciDriver')
-Write-Output "AhciDriver methods:"
-foreach ($m in $ahci.Methods) {
-    Write-Output "  $($m.Name)"
-}
-$port = $drivers.GetType('Cosmos.Kernel.Drivers.Pci.Storage.Ahci.AhciPort')
-Write-Output "AhciPort methods:"
-foreach ($m in $port.Methods) {
-    Write-Output "  $($m.Name)"
-}
+$dllPath = (Get-ChildItem -Recurse 'C:\Users\dvian\.nuget\packages' -Filter 'Cosmos.Kernel.HAL.dll' | Where-Object { $_.FullName -like '*net10.0*' } | Select-Object -First 1).FullName
+$bytes = [System.IO.File]::ReadAllBytes($dllPath)
+$str = [System.Text.Encoding]::ASCII.GetString($bytes)
+$matches = [System.Text.RegularExpressions.Regex]::Matches($str, '[A-Za-z0-9_]{3,}(?:Ahci|Ata|Atapi|Cdrom|BlockDevice|Sata)[A-Za-z0-9_]*')
+$matches | ForEach-Object { $_.Value } | Select-Object -Unique

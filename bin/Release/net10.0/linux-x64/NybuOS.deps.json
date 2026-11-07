@@ -15,6 +15,7 @@
           "Cosmos.Kernel.HAL.X64": "3.0.95",
           "Cosmos.Kernel.SourceGenerators": "3.0.95",
           "Cosmos.Kernel.System": "3.0.95",
+          "Cosmos.Network.Http": "3.0.0",
           "Cosmos.Kernel.HAL.Reference": "3.0.95.0",
           "Cosmos.Kernel.System.Reference": "3.0.95.0",
           "runtimepack.Microsoft.NETCore.App.Runtime.linux-x64": "10.0.13"
@@ -762,6 +763,14 @@
           }
         }
       },
+      "BouncyCastle.Cryptography/2.7.0": {
+        "runtime": {
+          "lib/net6.0/BouncyCastle.Cryptography.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.7.0.16391"
+          }
+        }
+      },
       "Cosmos.Build.API/3.0.95": {
         "runtime": {
           "lib/netstandard2.0/Cosmos.Build.API.dll": {
@@ -899,6 +908,17 @@
           "runtimes/linux-x64/lib/net10.0/Cosmos.Kernel.System.dll": {
             "assemblyVersion": "3.0.95.0",
             "fileVersion": "3.0.95.0"
+          }
+        }
+      },
+      "Cosmos.Network.Http/3.0.0": {
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.7.0"
+        },
+        "runtime": {
+          "lib/net10.0/Cosmos.Network.Http.dll": {
+            "assemblyVersion": "3.0.0.0",
+            "fileVersion": "3.0.0.0"
           }
         }
       },
@@ -1064,6 +1084,13 @@
       "serviceable": false,
       "sha512": ""
     },
+    "BouncyCastle.Cryptography/2.7.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-U+12df8UEWHgBi04YVf/Lgi2dy3SItlIYvHjjEVa/BngCQIzDCDRBk50DDByCfDvSbe5pRNFr3b7UrVK2kMcLw==",
+      "path": "bouncycastle.cryptography/2.7.0",
+      "hashPath": "bouncycastle.cryptography.2.7.0.nupkg.sha512"
+    },
     "Cosmos.Build.API/3.0.95": {
       "type": "package",
       "serviceable": true,
@@ -1154,6 +1181,13 @@
       "sha512": "sha512-NVALGs4X/OPMB/wxvut3qsFj2In8FJTc367l01Ko7ETgkZLrLdx82SjcWfWG2I4cLWyGgciYzSpwlZSAou7iow==",
       "path": "cosmos.kernel.system/3.0.95",
       "hashPath": "cosmos.kernel.system.3.0.95.nupkg.sha512"
+    },
+    "Cosmos.Network.Http/3.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-0jlOCwel0dH5FgB9eNBdNEgMzqrFehg5rQ/b3IWyuGvhchiM0nr3KSvCubccaV283uGitD/Yl1q8qUqTnLJmoQ==",
+      "path": "cosmos.network.http/3.0.0",
+      "hashPath": "cosmos.network.http.3.0.0.nupkg.sha512"
     },
     "Microsoft.CodeAnalysis.Common/4.14.0": {
       "type": "package",

@@ -2,6 +2,19 @@
   "version": 4,
   "targets": {
     "net10.0": {
+      "BouncyCastle.Cryptography/2.7.0": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/BouncyCastle.Cryptography.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/BouncyCastle.Cryptography.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Cosmos.Build.API/3.0.95": {
         "type": "package",
         "compile": {
@@ -268,6 +281,22 @@
           }
         }
       },
+      "Cosmos.Network.Http/3.0.0": {
+        "type": "package",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.7.0"
+        },
+        "compile": {
+          "lib/net10.0/Cosmos.Network.Http.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/Cosmos.Network.Http.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Microsoft.CodeAnalysis.Analyzers/3.11.0": {
         "type": "package",
         "build": {
@@ -446,6 +475,19 @@
       }
     },
     "net10.0/linux-x64": {
+      "BouncyCastle.Cryptography/2.7.0": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/BouncyCastle.Cryptography.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/BouncyCastle.Cryptography.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Cosmos.Build.API/3.0.95": {
         "type": "package",
         "compile": {
@@ -677,6 +719,22 @@
           "build/Cosmos.Kernel.System.props": {}
         }
       },
+      "Cosmos.Network.Http/3.0.0": {
+        "type": "package",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.7.0"
+        },
+        "compile": {
+          "lib/net10.0/Cosmos.Network.Http.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/Cosmos.Network.Http.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Microsoft.CodeAnalysis.Analyzers/3.11.0": {
         "type": "package",
         "build": {
@@ -856,6 +914,26 @@
     }
   },
   "libraries": {
+    "BouncyCastle.Cryptography/2.7.0": {
+      "sha512": "U+12df8UEWHgBi04YVf/Lgi2dy3SItlIYvHjjEVa/BngCQIzDCDRBk50DDByCfDvSbe5pRNFr3b7UrVK2kMcLw==",
+      "type": "package",
+      "path": "bouncycastle.cryptography/2.7.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.md",
+        "README.md",
+        "bouncycastle.cryptography.2.7.0.nupkg.sha512",
+        "bouncycastle.cryptography.nuspec",
+        "lib/net461/BouncyCastle.Cryptography.dll",
+        "lib/net461/BouncyCastle.Cryptography.xml",
+        "lib/net6.0/BouncyCastle.Cryptography.dll",
+        "lib/net6.0/BouncyCastle.Cryptography.xml",
+        "lib/netstandard2.0/BouncyCastle.Cryptography.dll",
+        "lib/netstandard2.0/BouncyCastle.Cryptography.xml",
+        "packageIcon.png"
+      ]
+    },
     "Cosmos.Build.API/3.0.95": {
       "sha512": "WHVXkhfB9UfUe4/JMdyAqgOpmI+7qIuDe+ShiMPuEZS/KXRYlu63KalKDV1dsw8H2mBc3rAdBHrr6ztKDVQC7w==",
       "type": "package",
@@ -1243,6 +1321,23 @@
         "cosmos.kernel.system.nuspec",
         "runtimes/linux-arm64/lib/net10.0/Cosmos.Kernel.System.dll",
         "runtimes/linux-x64/lib/net10.0/Cosmos.Kernel.System.dll"
+      ]
+    },
+    "Cosmos.Network.Http/3.0.0": {
+      "sha512": "0jlOCwel0dH5FgB9eNBdNEgMzqrFehg5rQ/b3IWyuGvhchiM0nr3KSvCubccaV283uGitD/Yl1q8qUqTnLJmoQ==",
+      "type": "package",
+      "path": "cosmos.network.http/3.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.txt",
+        "README.md",
+        "THIRD-PARTY-NOTICES.txt",
+        "cosmos.network.http.3.0.0.nupkg.sha512",
+        "cosmos.network.http.nuspec",
+        "icon.png",
+        "lib/net10.0/Cosmos.Network.Http.dll",
+        "lib/net10.0/Cosmos.Network.Http.xml"
       ]
     },
     "Microsoft.CodeAnalysis.Analyzers/3.11.0": {
@@ -2176,6 +2271,7 @@
       "Cosmos.Kernel.Native.X64 >= 3.0.95",
       "Cosmos.Kernel.SourceGenerators >= 3.0.95",
       "Cosmos.Kernel.System >= 3.0.95",
+      "Cosmos.Network.Http >= 3.0.0",
       "Microsoft.NET.ILLink.Tasks >= 10.0.13"
     ]
   },
@@ -2277,6 +2373,10 @@
           "Cosmos.Kernel.System": {
             "target": "Package",
             "version": "[3.0.95, )"
+          },
+          "Cosmos.Network.Http": {
+            "target": "Package",
+            "version": "[3.0.0, )"
           },
           "Microsoft.NET.ILLink.Tasks": {
             "suppressParent": "All",

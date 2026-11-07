@@ -247,3 +247,5 @@ C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release
 C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\NybuOS.pdb
 C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\NybuOS.genruntimeconfig.cache
 C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\ref\NybuOS.dll
+C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\bin\Release\net10.0\linux-x64\BouncyCastle.Cryptography.dll
+C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\bin\Release\net10.0\linux-x64\Cosmos.Network.Http.dll

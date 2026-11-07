@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("NybuOS")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ddc86f46049b50bd591e996d14f8d5b4649bb7ef")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3b02b143ef28d4a87a2fa7d9c705b072642d445d")]
 [assembly: System.Reflection.AssemblyProductAttribute("NybuOS")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NybuOS")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

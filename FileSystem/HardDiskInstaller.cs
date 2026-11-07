@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using Cosmos.Kernel.Boot.Limine;
 using Cosmos.Kernel.HAL.Devices.Storage;
 using Cosmos.Kernel.System.Storage;
 
@@ -49,35 +50,58 @@ public static class HardDiskInstaller
         return null;
     }
 
-    public static IBlockDevice? FindSourceCdRom()
+    public static IBlockDevice? FindSourceCdRom(IBlockDevice? targetHdd = null)
     {
         try
         {
             var devices = StorageManager.Devices;
-            if (devices != null)
+            if (devices != null && devices.Count > 0)
             {
+                // 1. Qualquer dispositivo com BlockSize == 2048 que não seja o targetHdd
                 for (int i = 0; i < devices.Count; i++)
                 {
                     var dev = devices[i];
-                    if (dev != null)
+                    if (dev != null && dev != targetHdd && dev.BlockSize == 2048)
                     {
-                        // Dispositivo de CD-ROM com setor de 2048 bytes
-                        if (dev.BlockSize == 2048)
-                        {
-                            return dev;
-                        }
+                        return dev;
+                    }
+                }
 
-                        // Ou verifica assinatura ISO9660 "CD001" no setor 16
+                // 2. Qualquer dispositivo com assinatura ISO9660 "CD001" (setor 16 para 2048B ou setor 64 para 512B)
+                for (int i = 0; i < devices.Count; i++)
+                {
+                    var dev = devices[i];
+                    if (dev != null && dev != targetHdd)
+                    {
                         try
                         {
-                            byte[] sec16 = new byte[dev.BlockSize];
-                            dev.ReadBlock(16, 1, sec16);
-                            if (sec16.Length >= 6 && sec16[1] == 'C' && sec16[2] == 'D' && sec16[3] == '0' && sec16[4] == '0' && sec16[5] == '1')
+                            byte[] sec = new byte[dev.BlockSize];
+                            dev.ReadBlock(16, 1, sec);
+                            if (sec.Length >= 6 && sec[1] == 'C' && sec[2] == 'D' && sec[3] == '0' && sec[4] == '0' && sec[5] == '1')
                             {
                                 return dev;
                             }
+
+                            if (dev.BlockSize == 512)
+                            {
+                                dev.ReadBlock(64, 1, sec);
+                                if (sec.Length >= 6 && sec[1] == 'C' && sec[2] == 'D' && sec[3] == '0' && sec[4] == '0' && sec[5] == '1')
+                                {
+                                    return dev;
+                                }
+                            }
                         }
                         catch { }
+                    }
+                }
+
+                // 3. Qualquer outro dispositivo disponível diferente do targetHdd
+                for (int i = 0; i < devices.Count; i++)
+                {
+                    var dev = devices[i];
+                    if (dev != null && dev != targetHdd)
+                    {
+                        return dev;
                     }
                 }
             }
@@ -91,13 +115,14 @@ public static class HardDiskInstaller
     {
         try
         {
-            progress(5, "Detectando unidades de armazenamento e disco rigido...");
+            progress(5, "Detectando unidades de armazenamento...");
             var targetHdd = FindTargetHardDisk();
-            var sourceCd = FindSourceCdRom();
+            var sourceCd = FindSourceCdRom(targetHdd);
 
             if (targetHdd == null)
             {
-                progress(10, "Aviso: Disco rigido fisico nao detectado. Gravando em emulador de disco...");
+                progress(100, "ERRO: Nenhum disco rigido SATA ou NVMe detectado! Configure o HD da VM como SATA.");
+                return false;
             }
 
             // 1. Grava MBR e estágio 1 do Limine (Setor 0)
@@ -114,33 +139,76 @@ public static class HardDiskInstaller
             fat32.Format();
 
             // 4. Cria diretórios do sistema
-            progress(55, "Criando arvore de diretorios /boot, /System, /Documents...");
+            progress(55, "Criando arvore de diretorios /boot, /limine, /EFI, /System, /Documents...");
             uint bootCluster = fat32.CreateDirectory(2, "BOOT");
             uint limineCluster = fat32.CreateDirectory(bootCluster, "LIMINE");
+            uint rootLimineCluster = fat32.CreateDirectory(2, "LIMINE");
+            uint efiCluster = fat32.CreateDirectory(2, "EFI");
+            uint efiBootCluster = fat32.CreateDirectory(efiCluster, "BOOT");
             uint sysCluster = fat32.CreateDirectory(2, "SYSTEM");
             uint docsCluster = fat32.CreateDirectory(2, "DOCUMENTS");
             uint deskCluster = fat32.CreateDirectory(2, "DESKTOP");
             uint progCluster = fat32.CreateDirectory(2, "PROGRAMS");
+            uint nybuCluster = fat32.CreateDirectory(2, "NYBUOS");
 
-            // 5. Instala arquivos do carregador Limine
-            progress(65, "Gravando configuracao e binarios do Limine (/boot/limine)...");
+            // 5. Instala arquivos do carregador Limine em todos os pontos de busca padrão (BIOS + UEFI)
+            progress(65, "Gravando configuracao e binarios do Limine (BIOS + UEFI)...");
             byte[] limineConfBytes = Encoding.ASCII.GetBytes(EmbeddedBootloaderData.LimineConf);
+            
+            // Grava limine.conf em /, /limine, /boot, /boot/limine e /EFI/BOOT
+            fat32.WriteFile(2, "LIMINE.CFG", "limine.conf", limineConfBytes);
+            fat32.WriteFile(rootLimineCluster, "LIMINE.CFG", "limine.conf", limineConfBytes);
+            fat32.WriteFile(bootCluster, "LIMINE.CFG", "limine.conf", limineConfBytes);
             fat32.WriteFile(limineCluster, "LIMINE.CFG", "limine.conf", limineConfBytes);
+            fat32.WriteFile(efiBootCluster, "LIMINE.CFG", "limine.conf", limineConfBytes);
 
             if (EmbeddedBootloaderData.LimineBiosSys != null && EmbeddedBootloaderData.LimineBiosSys.Length > 0)
             {
-                fat32.WriteFile(limineCluster, "LIMINE.SYS", "limine-bios.sys", EmbeddedBootloaderData.LimineBiosSys);
-                // Copia também para a raiz do boot para máxima compatibilidade
+                // Grava limine-bios.sys em /, /limine, /boot, e /boot/limine
+                fat32.WriteFile(2, "LIMINE.SYS", "limine-bios.sys", EmbeddedBootloaderData.LimineBiosSys);
+                fat32.WriteFile(rootLimineCluster, "LIMINE.SYS", "limine-bios.sys", EmbeddedBootloaderData.LimineBiosSys);
                 fat32.WriteFile(bootCluster, "LIMINE.SYS", "limine-bios.sys", EmbeddedBootloaderData.LimineBiosSys);
+                fat32.WriteFile(limineCluster, "LIMINE.SYS", "limine-bios.sys", EmbeddedBootloaderData.LimineBiosSys);
             }
 
-            // 6. Copia NybuOS.elf da mídia ISO CD-ROM
-            progress(75, "Copiando kernel executavel NybuOS.elf da midia de instalacao...");
-            CopyKernelFromCd(sourceCd, targetHdd, fat32, bootCluster, (pct) =>
+            // Grava BOOTX64.EFI nativo (UEFI 64-bit)
+            if (EmbeddedBootX64Data.LimineBootX64Efi != null && EmbeddedBootX64Data.LimineBootX64Efi.Length > 0)
+            {
+                fat32.WriteFile(efiBootCluster, "BOOTX64.EFI", "BOOTX64.EFI", EmbeddedBootX64Data.LimineBootX64Efi);
+                fat32.WriteFile(efiBootCluster, "BOOT.EFI", "BOOT.EFI", EmbeddedBootX64Data.LimineBootX64Efi);
+            }
+            else if (sourceCd != null)
+            {
+                CopyBootEfiFromCd(sourceCd, fat32, efiBootCluster);
+            }
+
+            // 6. Copia NybuOS.elf para o disco de destino
+            progress(75, "Gravando executavel do sistema NybuOS.elf...");
+            bool kernelCopied = false;
+
+            // Tentativa 1: Copiar direto da memória RAM (Limine Module / Kernel)
+            kernelCopied = CopyKernelFromMemory(fat32, bootCluster, (pct) =>
             {
                 int mapped = 75 + (pct * 15 / 100);
                 progress(mapped, $"Gravando NybuOS.elf em disco FAT32 ({pct}%)...");
             });
+
+            // Tentativa 2: Fallback para CD-ROM se disponível
+            if (!kernelCopied && sourceCd != null)
+            {
+                CopyKernelFromCd(sourceCd, targetHdd, fat32, bootCluster, (pct) =>
+                {
+                    int mapped = 75 + (pct * 15 / 100);
+                    progress(mapped, $"Gravando NybuOS.elf via CD-ROM ({pct}%)...");
+                });
+                kernelCopied = true;
+            }
+
+            if (!kernelCopied)
+            {
+                progress(100, "ERRO: Nao foi possivel carregar o kernel NybuOS.elf da memoria nem do CD.");
+                return false;
+            }
 
             // 7. Grava arquivos de fábrica e configurações
             progress(92, "Gravando arquivos de configuracao e utilitarios...");
@@ -158,6 +226,11 @@ public static class HardDiskInstaller
                            "3. Customizar tema no Painel de Controle\n";
             fat32.WriteFile(deskCluster, "NOTAS.TXT", "notas.txt", Encoding.ASCII.GetBytes(notas));
 
+            // Tag de confirmação de instalação para o kernel
+            string installedTag = "INSTALLED=1\nVERSION=3.0-RV\nBOOT=HDD\n";
+            fat32.WriteFile(nybuCluster, "INSTAL~1.TAG", "installed.tag", Encoding.ASCII.GetBytes(installedTag));
+            fat32.WriteFile(2, "INSTAL~1.TAG", "installed.tag", Encoding.ASCII.GetBytes(installedTag));
+
             progress(100, "Instalacao concluida com exito! Sistema pronto para boot pelo HD.");
             return true;
         }
@@ -166,6 +239,63 @@ public static class HardDiskInstaller
             progress(100, $"Erro na instalacao: {ex.Message}");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Verifica se o NybuOS já foi instalado no HD primário (MBR particionado, FAT32 formatado e arquivos do sistema gravados).
+    /// Permite ocultar completamente o instalador ao inicializar pelo disco rígido.
+    /// </summary>
+    public static bool IsSystemInstalledOnHardDisk()
+    {
+        try
+        {
+            var hdd = FindTargetHardDisk();
+            if (hdd == null) return false;
+
+            // 1. MBR válido no setor 0 com partição 1 inicializável
+            byte[] mbr = new byte[512];
+            hdd.ReadBlock(0, 1, mbr);
+            if (mbr[510] != 0x55 || mbr[511] != 0xAA) return false;
+            if (mbr[446] != 0x80 || mbr[450] != 0x0C) return false;
+
+            // 2. VBR da partição primária FAT32 em LBA 2048
+            byte[] vbr = new byte[512];
+            hdd.ReadBlock(PartitionStartLba, 1, vbr);
+            if (vbr[510] != 0x55 || vbr[511] != 0xAA) return false;
+
+            string fsType = Encoding.ASCII.GetString(vbr, 82, 5);
+            if (!fsType.Equals("FAT32", StringComparison.OrdinalIgnoreCase)) return false;
+
+            // 3. Inspeção direta do diretório raiz e arquivos essenciais
+            var fat32 = new DirectFat32(hdd, PartitionStartLba);
+
+            // Verifica tag de instalação
+            if (fat32.FileExists(2, "INSTAL~1.TAG") || fat32.FileExists(2, "INSTALLED.TAG"))
+            {
+                return true;
+            }
+
+            uint nybuCluster = fat32.FindDirectoryCluster(2, "NYBUOS");
+            if (nybuCluster > 0 && (fat32.FileExists(nybuCluster, "INSTAL~1.TAG") || fat32.FileExists(nybuCluster, "INSTALLED.TAG")))
+            {
+                return true;
+            }
+
+            // Verifica se o kernel executável já existe na partição
+            uint bootCluster = fat32.FindDirectoryCluster(2, "BOOT");
+            if (bootCluster > 0 && (fat32.FileExists(bootCluster, "NYBUOS.ELF") || fat32.FileExists(bootCluster, "NybuOS.elf")))
+            {
+                return true;
+            }
+
+            if (fat32.FileExists(2, "NYBUOS.ELF") || fat32.FileExists(2, "LIMINE.CFG"))
+            {
+                return true;
+            }
+        }
+        catch { }
+
+        return false;
     }
 
     private static void WriteMbr(IBlockDevice? hdd)
@@ -252,6 +382,122 @@ public static class HardDiskInstaller
         catch { }
     }
 
+    private static unsafe bool CopyKernelFromMemory(DirectFat32 fat32, uint bootCluster, Action<int> onPct)
+    {
+        try
+        {
+            var mapReq = Cosmos.Kernel.Boot.Limine.Limine.MemoryMap;
+            var hhdmReq = Cosmos.Kernel.Boot.Limine.Limine.HHDM;
+
+            if (mapReq.Response == null || hhdmReq.Response == null)
+            {
+                return false;
+            }
+
+            ulong hhdmOffset = hhdmReq.Response->Offset;
+            ulong entryCount = mapReq.Response->EntryCount;
+            var entries = mapReq.Response->Entries;
+
+            byte* elfPtr = null;
+            uint elfSize = 0;
+
+            // Percorre as entradas da tabela de memória para localizar o kernel / módulo do Limine
+            for (ulong i = 0; i < entryCount; i++)
+            {
+                var entry = entries[i];
+                if (entry == null) continue;
+
+                // Tipos: KernelAndModules (6), BootloaderReclaimable (5), Usable (0)
+                if (entry->Type == Cosmos.Kernel.Boot.Limine.LimineMemmapType.KernelAndModules ||
+                    entry->Type == Cosmos.Kernel.Boot.Limine.LimineMemmapType.BootloaderReclaimable ||
+                    entry->Type == Cosmos.Kernel.Boot.Limine.LimineMemmapType.Usable)
+                {
+                    ulong physBase = (ulong)entry->Base;
+                    ulong len = entry->Length;
+
+                    // NybuOS.elf tem pelo menos 5 MB
+                    if (len < 5000000) continue;
+
+                    byte* va = (byte*)(physBase + hhdmOffset);
+
+                    // Procura cabeçalho ELF alinhado a 4096 bytes nos primeiros 32 MB da região
+                    ulong scanLimit = Math.Min(len, 32UL * 1024 * 1024);
+                    for (ulong offset = 0; offset + 64 <= scanLimit; offset += 4096)
+                    {
+                        byte* p = va + offset;
+
+                        // Magic: 0x7F, 'E', 'L', 'F'
+                        if (p[0] == 0x7F && p[1] == (byte)'E' && p[2] == (byte)'L' && p[3] == (byte)'F')
+                        {
+                            // 64-bit (2), Little-endian (1), EM_X86_64 (0x3E)
+                            if (p[4] == 2 && p[5] == 1 && *(ushort*)(p + 18) == 0x3E)
+                            {
+                                ulong shoff = *(ulong*)(p + 40);
+                                ushort shentsize = *(ushort*)(p + 58);
+                                ushort shnum = *(ushort*)(p + 60);
+
+                                if (shoff > 0 && shentsize == 64 && shnum > 0)
+                                {
+                                    ulong calcSize = shoff + ((ulong)shnum * (ulong)shentsize);
+                                    if (calcSize >= 5000000 && calcSize <= 100000000)
+                                    {
+                                        elfPtr = p;
+                                        elfSize = (uint)calcSize;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (elfPtr != null) break;
+                }
+            }
+
+            if (elfPtr == null || elfSize == 0)
+            {
+                return false;
+            }
+
+            // Grava o arquivo no FAT32 em blocos de 64 KB
+            uint chunkSize = 65536;
+            uint copied = 0;
+
+            uint cluster = fat32.StreamCopyFile(bootCluster, "NYBUOS.ELF", "NybuOS.elf", elfSize, (writeChunk) =>
+            {
+                while (copied < elfSize)
+                {
+                    uint toCopy = Math.Min(chunkSize, elfSize - copied);
+                    byte[] chunk = new byte[toCopy];
+
+                    for (uint j = 0; j < toCopy; j++)
+                    {
+                        chunk[j] = elfPtr[copied + j];
+                    }
+
+                    writeChunk(chunk);
+                    copied += toCopy;
+
+                    int pct = (int)((ulong)copied * 100 / elfSize);
+                    onPct(pct);
+                }
+            });
+
+            if (cluster > 0)
+            {
+                // Cria link também na raiz /NybuOS.elf
+                fat32.LinkFile(2, "NYBUOS.ELF", "NybuOS.elf", cluster, elfSize);
+                return true;
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static void CopyKernelFromCd(IBlockDevice? cd, IBlockDevice? hdd, DirectFat32 fat32, uint bootCluster, Action<int> onPct)
     {
         if (cd == null)
@@ -262,14 +508,14 @@ public static class HardDiskInstaller
 
         try
         {
-            // Setor 22 da ISO contém o registro de diretório de NYBUOS.ELF
-            // Extent LBA = 1614 (setores de 2048 bytes), tamanho ~11.931.808 bytes
             ulong elfLba = 1614;
-            uint elfBytes = 11931808;
+            uint elfBytes = 12427296;
+
+            ulong mult = cd.BlockSize == 512 ? 4UL : 1UL;
 
             // Tenta detectar dinamicamente no setor 22 do CD
             byte[] dirSec = new byte[2048];
-            cd.ReadBlock(22, 1, dirSec);
+            cd.ReadBlock(22 * mult, mult, dirSec);
             int idx = 0;
             while (idx < dirSec.Length)
             {
@@ -292,19 +538,19 @@ public static class HardDiskInstaller
                 idx += recLen;
             }
 
-            // Copia em blocos de 64 KB (32 setores de 2048 bytes do CD)
+            // Copia em blocos de 32 KB (16 setores de 2048 bytes do CD)
             ulong totalCdSectors = ((ulong)elfBytes + 2047) / 2048;
             ulong sectorsCopied = 0;
-            uint chunkCdSectors = 32;
+            uint chunkCdSectors = 16;
 
             // Inicia gravação contígua no FAT32
-            fat32.StreamCopyFile(bootCluster, "NYBUOS.ELF", "NybuOS.elf", elfBytes, (writeChunk) =>
+            uint elfCluster = fat32.StreamCopyFile(bootCluster, "NYBUOS.ELF", "NybuOS.elf", elfBytes, (writeChunk) =>
             {
                 while (sectorsCopied < totalCdSectors)
                 {
                     uint toRead = (uint)Math.Min((ulong)chunkCdSectors, totalCdSectors - sectorsCopied);
                     byte[] chunk = new byte[toRead * 2048];
-                    cd.ReadBlock(elfLba + sectorsCopied, toRead, chunk);
+                    cd.ReadBlock((elfLba + sectorsCopied) * mult, toRead * mult, chunk);
                     sectorsCopied += toRead;
 
                     writeChunk(chunk);
@@ -313,11 +559,78 @@ public static class HardDiskInstaller
                     onPct(pct);
                 }
             });
+
+            // Cria entrada também na raiz /NybuOS.elf para máxima compatibilidade com o Limine
+            if (elfCluster > 0)
+            {
+                fat32.LinkFile(2, "NYBUOS.ELF", "NybuOS.elf", elfCluster, elfBytes);
+            }
         }
         catch
         {
             onPct(100);
         }
+    }
+
+    private static void CopyBootEfiFromCd(IBlockDevice cd, DirectFat32 fat32, uint efiBootCluster)
+    {
+        try
+        {
+            ulong efiLba = 7681;
+            uint efiBytes = 307200;
+            ulong mult = cd.BlockSize == 512 ? 4UL : 1UL;
+
+            byte[] dirSec = new byte[2048];
+            for (ulong sec = 16; sec <= 35; sec++)
+            {
+                try
+                {
+                    cd.ReadBlock(sec * mult, mult, dirSec);
+                    int idx = 0;
+                    while (idx < dirSec.Length)
+                    {
+                        byte recLen = dirSec[idx];
+                        if (recLen == 0) { idx++; continue; }
+                        if (idx + 33 < dirSec.Length)
+                        {
+                            byte nameLen = dirSec[idx + 32];
+                            if (idx + 33 + nameLen <= dirSec.Length)
+                            {
+                                string name = Encoding.ASCII.GetString(dirSec, idx + 33, nameLen);
+                                if (name.StartsWith("BOOTX64.EFI", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    efiLba = BitConverter.ToUInt32(dirSec, idx + 2);
+                                    efiBytes = BitConverter.ToUInt32(dirSec, idx + 10);
+                                    goto FoundEfi;
+                                }
+                            }
+                        }
+                        idx += recLen;
+                    }
+                }
+                catch { }
+            }
+
+        FoundEfi:
+            if (efiBytes > 0 && efiBytes < 2000000)
+            {
+                ulong totalCdSec = ((ulong)efiBytes + 2047) / 2048;
+                ulong sCopied = 0;
+                uint chunkSectors = 16;
+                fat32.StreamCopyFile(efiBootCluster, "BOOTX64.EFI", "BOOTX64.EFI", efiBytes, (writeChunk) =>
+                {
+                    while (sCopied < totalCdSec)
+                    {
+                        uint toRead = (uint)Math.Min((ulong)chunkSectors, totalCdSec - sCopied);
+                        byte[] chunk = new byte[toRead * 2048];
+                        cd.ReadBlock((efiLba + sCopied) * mult, toRead * mult, chunk);
+                        sCopied += toRead;
+                        writeChunk(chunk);
+                    }
+                });
+            }
+        }
+        catch { }
     }
 }
 
@@ -351,6 +664,21 @@ public class DirectFat32
         uint dataSectors = _partSectors - _reservedSectors;
         uint fatSec = (dataSectors + (_spc * 128u + 2) - 1) / (_spc * 128u + 2);
         _fatSectors = ((fatSec + 31) / 32) * 32;
+
+        // Se a partição já estiver formatada, lê o próximo cluster livre do setor FSInfo
+        try
+        {
+            byte[] fsi = ReadSector(_startLba + 1);
+            if (BitConverter.ToUInt32(fsi, 0) == 0x41615252 && BitConverter.ToUInt32(fsi, 484) == 0x61417272)
+            {
+                uint nextFree = BitConverter.ToUInt32(fsi, 492);
+                if (nextFree >= 3 && nextFree < 0x0FFFFFF0)
+                {
+                    _nextFreeCluster = nextFree;
+                }
+            }
+        }
+        catch { }
     }
 
     public void Format()
@@ -459,7 +787,7 @@ public class DirectFat32
         AddDirEntry(dirCluster, Format83(shortName83), longName, 0x20, firstCluster, dataLen);
     }
 
-    public void StreamCopyFile(uint dirCluster, string shortName83, string? longName, uint totalBytes, Action<Action<byte[]>> streamWriter)
+    public uint StreamCopyFile(uint dirCluster, string shortName83, string? longName, uint totalBytes, Action<Action<byte[]>> streamWriter)
     {
         uint firstCluster = 0;
         uint prevCluster = 0;
@@ -525,6 +853,140 @@ public class DirectFat32
         }
 
         AddDirEntry(dirCluster, Format83(shortName83), longName, 0x20, firstCluster, totalBytes);
+        return firstCluster;
+    }
+
+    public void LinkFile(uint dirCluster, string shortName83, string? longName, uint firstCluster, uint totalBytes)
+    {
+        AddDirEntry(dirCluster, Format83(shortName83), longName, 0x20, firstCluster, totalBytes);
+    }
+
+    public bool UpdateFile(uint dirCluster, string shortName83, string? longName, byte[] data, Action<int>? onProgress = null)
+    {
+        uint dataLen = (uint)data.Length;
+        uint neededClusters = (dataLen + _clusterBytes - 1) / _clusterBytes;
+        if (neededClusters == 0) neededClusters = 1;
+
+        uint firstCluster = 0;
+        uint prevCluster = 0;
+
+        for (uint i = 0; i < neededClusters; i++)
+        {
+            uint c = AllocateCluster();
+            if (i == 0) firstCluster = c;
+            else SetFatEntry(prevCluster, c);
+            prevCluster = c;
+
+            int chunkOffset = (int)(i * _clusterBytes);
+            int chunkLen = Math.Min((int)_clusterBytes, (int)(dataLen - chunkOffset));
+            if (chunkLen < 0) chunkLen = 0;
+
+            ulong lba = GetClusterLba(c);
+            for (int s = 0; s < _spc; s++)
+            {
+                byte[] secData = new byte[512];
+                int secOff = s * 512;
+                if (secOff < chunkLen)
+                {
+                    int copyLen = Math.Min(512, chunkLen - secOff);
+                    Array.Copy(data, chunkOffset + secOff, secData, 0, copyLen);
+                }
+                WriteSector((uint)(lba + (ulong)s), secData);
+            }
+
+            if (onProgress != null && neededClusters > 0)
+            {
+                int pct = (int)((i + 1) * 100 / neededClusters);
+                onProgress(pct);
+            }
+        }
+
+        SetFatEntry(prevCluster, 0x0FFFFFFF);
+
+        // Atualiza a entrada existente no diretório se encontrada
+        string search83 = Format83(shortName83);
+        ulong dirLba = GetClusterLba(dirCluster);
+        for (int s = 0; s < _spc; s++)
+        {
+            byte[] sec = ReadSector((uint)(dirLba + (ulong)s));
+            for (int off = 0; off <= 512 - 32; off += 32)
+            {
+                if (sec[off] == 0x00) break;
+                if (sec[off] == 0xE5 || sec[off + 11] == 0x0F) continue;
+
+                string entryName = Encoding.ASCII.GetString(sec, off, 11);
+                if (string.Equals(entryName, search83, StringComparison.OrdinalIgnoreCase))
+                {
+                    BitConverter.GetBytes((ushort)((firstCluster >> 16) & 0xFFFF)).CopyTo(sec, off + 20);
+                    BitConverter.GetBytes((ushort)(firstCluster & 0xFFFF)).CopyTo(sec, off + 26);
+                    BitConverter.GetBytes(dataLen).CopyTo(sec, off + 28);
+                    WriteSector((uint)(dirLba + (ulong)s), sec);
+                    return true;
+                }
+            }
+        }
+
+        AddDirEntry(dirCluster, Format83(shortName83), longName, 0x20, firstCluster, dataLen);
+        return true;
+    }
+
+    public bool FileExists(uint dirCluster, string name)
+    {
+        try
+        {
+            string search83 = Format83(name);
+            ulong lba = GetClusterLba(dirCluster);
+            for (int s = 0; s < _spc; s++)
+            {
+                byte[] sec = ReadSector((uint)(lba + (ulong)s));
+                for (int off = 0; off <= 512 - 32; off += 32)
+                {
+                    if (sec[off] == 0x00) return false;
+                    if (sec[off] == 0xE5) continue;
+                    if (sec[off + 11] == 0x0F) continue; // LFN
+
+                    string entryName = Encoding.ASCII.GetString(sec, off, 11);
+                    if (string.Equals(entryName, search83, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    public uint FindDirectoryCluster(uint parentCluster, string dirName)
+    {
+        try
+        {
+            string search83 = Format83(dirName);
+            ulong lba = GetClusterLba(parentCluster);
+            for (int s = 0; s < _spc; s++)
+            {
+                byte[] sec = ReadSector((uint)(lba + (ulong)s));
+                for (int off = 0; off <= 512 - 32; off += 32)
+                {
+                    if (sec[off] == 0x00) return 0;
+                    if (sec[off] == 0xE5) continue;
+                    if (sec[off + 11] == 0x0F) continue; // LFN
+
+                    if ((sec[off + 11] & 0x10) != 0) // Diretório
+                    {
+                        string entryName = Encoding.ASCII.GetString(sec, off, 11);
+                        if (string.Equals(entryName, search83, StringComparison.OrdinalIgnoreCase))
+                        {
+                            ushort hi = BitConverter.ToUInt16(sec, off + 20);
+                            ushort lo = BitConverter.ToUInt16(sec, off + 26);
+                            return ((uint)hi << 16) | lo;
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+        return 0;
     }
 
     private uint AllocateCluster()
@@ -538,6 +1000,18 @@ public class DirectFat32
         {
             WriteSector((uint)(lba + (ulong)s), zero);
         }
+
+        try
+        {
+            byte[] fsi = ReadSector(_startLba + 1);
+            if (BitConverter.ToUInt32(fsi, 0) == 0x41615252)
+            {
+                BitConverter.GetBytes(_nextFreeCluster).CopyTo(fsi, 492);
+                WriteSector(_startLba + 1, fsi);
+            }
+        }
+        catch { }
+
         return c;
     }
 

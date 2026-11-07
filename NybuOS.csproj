@@ -6,12 +6,14 @@
     <VMMemory>2048</VMMemory>
     <VirtualBoxDisplayType>VBoxVGA</VirtualBoxDisplayType>
     <Features>experimental-data-section-string-literals</Features>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <!-- Core kernel packages -->
   <ItemGroup>
     <PackageReference Include="Cosmos.Kernel" Version="3.0.95" />
     <PackageReference Include="Cosmos.Kernel.System" Version="3.0.95" />
+    <PackageReference Include="Cosmos.Network.Http" Version="3.0.0" />
   </ItemGroup>
 
   <!-- Explicit reference for Roslyn compile-time type resolution -->
@@ -22,6 +24,14 @@
     </Reference>
     <Reference Include="Cosmos.Kernel.HAL">
       <HintPath>$(UserProfile)\.nuget\packages\cosmos.kernel.hal\3.0.95\runtimes\linux-x64\lib\net10.0\Cosmos.Kernel.HAL.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Cosmos.Network.Http">
+      <HintPath>$(UserProfile)\.nuget\packages\cosmos.network.http\3.0.0\lib\net10.0\Cosmos.Network.Http.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="BouncyCastle.Cryptography">
+      <HintPath>$(UserProfile)\.nuget\packages\bouncycastle.cryptography\2.7.0\lib\net6.0\BouncyCastle.Cryptography.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>

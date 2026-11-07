@@ -111,7 +111,7 @@ public class InstallerApp : Window
                     if (dev != null)
                     {
                         ulong sizeMb = (dev.BlockCount * (ulong)dev.BlockSize) / (1024 * 1024);
-                        string typeStr = dev.BlockSize == 2048 ? "Unidade CD/DVD-ROM" : "Disco Rigido / SSD";
+                        string typeStr = dev.BlockSize == 2048 ? "Unidade CD/DVD-ROM (ATAPI)" : "Disco Rigido / SSD (SATA/NVMe)";
                         string sizeStr = sizeMb >= 1024 ? $"{sizeMb / 1024} GB" : $"{sizeMb} MB";
                         _detectedDisks.Add($"Unidade {i}: {typeStr} ({sizeStr}) - Setor {dev.BlockSize}B");
                     }
@@ -119,11 +119,6 @@ public class InstallerApp : Window
             }
         }
         catch { }
-
-        if (_detectedDisks.Count == 0)
-        {
-            _detectedDisks.Add("Disco Rigido Primario (Emulado/IDE): 20 GB (FAT32 Ativa)");
-        }
     }
 
     public override void DrawContent(DisplayDriver display)
@@ -314,25 +309,40 @@ public class InstallerApp : Window
         int listW = w - 48;
         int listH = 140;
 
-        display.DrawFilledRectangle(listX, listY, listW, listH, Color.White);
-        display.DrawRectangle(listX, listY, listW, listH, Color.FromArgb(203, 213, 225));
+        bool hasDisks = _detectedDisks.Count > 0;
 
-        for (int i = 0; i < Math.Min(3, _detectedDisks.Count); i++)
+        if (hasDisks)
         {
-            int itemY = listY + 8 + (i * 42);
-            bool isSelected = i == _selectedDiskIndex;
+            display.DrawFilledRectangle(listX, listY, listW, listH, Color.White);
+            display.DrawRectangle(listX, listY, listW, listH, Color.FromArgb(203, 213, 225));
 
-            if (isSelected)
+            for (int i = 0; i < Math.Min(3, _detectedDisks.Count); i++)
             {
-                display.DrawFilledRectangle(listX + 6, itemY, listW - 12, 38, Color.FromArgb(239, 246, 255));
-                display.DrawRectangle(listX + 6, itemY, listW - 12, 38, Color.FromArgb(59, 130, 246));
-            }
+                int itemY = listY + 8 + (i * 42);
+                bool isSelected = i == _selectedDiskIndex;
 
-            if (IconResources.Drive16 != null)
-            {
-                display.DrawIcon(listX + 16, itemY + 10, IconResources.Drive16);
+                if (isSelected)
+                {
+                    display.DrawFilledRectangle(listX + 6, itemY, listW - 12, 38, Color.FromArgb(239, 246, 255));
+                    display.DrawRectangle(listX + 6, itemY, listW - 12, 38, Color.FromArgb(59, 130, 246));
+                }
+
+                if (IconResources.Drive16 != null)
+                {
+                    display.DrawIcon(listX + 16, itemY + 10, IconResources.Drive16);
+                }
+                display.DrawString(listX + 42, itemY + 11, _detectedDisks[i], isSelected ? Color.FromArgb(30, 58, 138) : Color.FromArgb(30, 41, 59));
             }
-            display.DrawString(listX + 42, itemY + 11, _detectedDisks[i], isSelected ? Color.FromArgb(30, 58, 138) : Color.FromArgb(30, 41, 59));
+        }
+        else
+        {
+            display.DrawFilledRectangle(listX, listY, listW, listH, Color.FromArgb(254, 242, 242));
+            display.DrawRectangle(listX, listY, listW, listH, Color.FromArgb(239, 68, 68));
+
+            display.DrawString(listX + 16, listY + 16, "! NENHUM DISCO FISICO (SATA/NVMe) DETECTADO !", Color.FromArgb(185, 28, 28));
+            display.DrawString(listX + 16, listY + 42, "O Cosmos Gen 3 requer disco SATA (AHCI) ou NVMe.", Color.FromArgb(153, 27, 27));
+            display.DrawString(listX + 16, listY + 66, "Discos IDE legacy nao sao suportados pelo driver de armazenamento.", Color.FromArgb(153, 27, 27));
+            display.DrawString(listX + 16, listY + 92, "No VMware: Mude o Hard Disk e o CD/DVD para o barramento SATA.", Color.FromArgb(30, 58, 138));
         }
 
         // Opcoes de formatacao e MBR
@@ -342,13 +352,14 @@ public class InstallerApp : Window
 
         // Alerta informativo VMware
         int warnY = optY + 62;
-        int warnH = 80;
-        display.DrawFilledRectangle(listX, warnY, listW, warnH, Color.FromArgb(254, 243, 199));
-        display.DrawRectangle(listX, warnY, listW, warnH, Color.FromArgb(245, 158, 11));
+        int warnH = 92;
+        display.DrawFilledRectangle(listX, warnY, listW, warnH, Color.FromArgb(239, 246, 255));
+        display.DrawRectangle(listX, warnY, listW, warnH, Color.FromArgb(59, 130, 246));
 
-        display.DrawString(listX + 16, warnY + 12, "! DICA PARA VMWARE WORKSTATION / PLAYER:", Color.FromArgb(146, 64, 14));
-        display.DrawString(listX + 16, warnY + 32, "Certifique-se de que o disco virtual esteja configurado como IDE ou SATA (AHCI).", Color.FromArgb(146, 64, 14));
-        display.DrawString(listX + 16, warnY + 52, "O padrao 'SCSI / LSI Logic' do VMware nao possui suporte em kernels x86 nativos.", Color.FromArgb(180, 83, 9));
+        display.DrawString(listX + 16, warnY + 10, "CONFIGURACAO RECOMENDADA NO VMWARE:", Color.FromArgb(30, 58, 138));
+        display.DrawString(listX + 16, warnY + 28, "1. Hard Disk: Deve ser do tipo 'SATA' (ex: SATA 0:0).", Color.FromArgb(30, 64, 120));
+        display.DrawString(listX + 16, warnY + 46, "2. CD/DVD: Deve ser do tipo 'SATA' (ex: SATA 0:1).", Color.FromArgb(30, 64, 120));
+        display.DrawString(listX + 16, warnY + 64, "3. Firmware da VM: Em Opcoes -> Avancado, selecione 'UEFI'.", Color.FromArgb(30, 64, 120));
     }
 
     private void DrawStepAppSelection(DisplayDriver display, int x, int y, int w, int h)
@@ -415,7 +426,7 @@ public class InstallerApp : Window
             display.DrawString(barX, logY + 72, "[4/5] Copiando arquivos limine.conf e executavel NybuOS.elf...", _progressPercent >= 80 ? Color.FromArgb(16, 185, 129) : Color.FromArgb(148, 163, 184));
             display.DrawString(barX, logY + 96, "[5/5] Registrando suite de aplicativos selecionados...", _progressPercent >= 100 ? Color.FromArgb(16, 185, 129) : Color.FromArgb(148, 163, 184));
         }
-        else
+        else if (_installSuccess)
         {
             // Tela de Conclusao e Aviso de Remocao da ISO
             int midX = x + (w / 2);
@@ -442,6 +453,32 @@ public class InstallerApp : Window
             display.DrawString(alertX + 20, alertY + 92, "2. Se a ISO nao for desconectada, a maquina pode reiniciar no instalador.", Color.FromArgb(153, 27, 27));
             display.DrawString(alertX + 20, alertY + 116, "3. Clique no botao 'Reiniciar Agora' abaixo para inicializar pelo HD!", Color.FromArgb(30, 58, 138));
         }
+        else
+        {
+            // Tela de Falha na Instalacao
+            int midX = x + (w / 2);
+
+            display.DrawFilledCircle(midX, y + 45, 28, Color.FromArgb(239, 68, 68));
+            display.DrawString(midX - 8, y + 37, "X", Color.White);
+
+            string failTitle = "Falha na Instalacao do Sistema!";
+            int ftw = failTitle.Length * CosmosNativeFont.Width;
+            display.DrawString(midX - (ftw / 2), y + 90, failTitle, Color.FromArgb(185, 28, 28));
+
+            int alertX = x + 30;
+            int alertY = y + 125;
+            int alertW = w - 60;
+            int alertH = 150;
+
+            display.DrawFilledRectangle(alertX, alertY, alertW, alertH, Color.FromArgb(254, 242, 242));
+            display.DrawRectangle(alertX, alertY, alertW, alertH, Color.FromArgb(239, 68, 68));
+
+            display.DrawString(alertX + 20, alertY + 20, "DIAGNOSTICO DA FALHA:", Color.FromArgb(185, 28, 28));
+            display.DrawString(alertX + 20, alertY + 45, _currentAction, Color.FromArgb(153, 27, 27));
+            display.DrawString(alertX + 20, alertY + 75, "COMO RESOLVER:", Color.FromArgb(30, 58, 138));
+            display.DrawString(alertX + 20, alertY + 95, "No VMware: Em Settings > CD/DVD > Advanced, altere para 'SATA 0:1'.", Color.FromArgb(30, 41, 59));
+            display.DrawString(alertX + 20, alertY + 115, "Clique em '< Voltar' para verificar os discos e tentar novamente.", Color.FromArgb(71, 85, 105));
+        }
     }
 
     private void DrawFooterButtons(DisplayDriver display, int x, int y, int w, int h)
@@ -463,8 +500,9 @@ public class InstallerApp : Window
         else if (_step == 2)
         {
             // Discos
+            bool hasDisks = _detectedDisks.Count > 0;
             DrawButton(display, x + 24, y + 12, 130, 34, "< Voltar", false);
-            DrawButton(display, x + w - 160, y + 12, 136, 34, "Avancar >", true);
+            DrawButton(display, x + w - 160, y + 12, 136, 34, "Avancar >", hasDisks);
         }
         else if (_step == 3)
         {
@@ -476,8 +514,16 @@ public class InstallerApp : Window
         {
             if (_installFinished)
             {
-                DrawButton(display, x + 24, y + 12, 220, 34, "Ir para Area de Trabalho", false);
-                DrawButton(display, x + w - 180, y + 12, 156, 34, "Reiniciar Agora", true);
+                if (_installSuccess)
+                {
+                    DrawButton(display, x + 24, y + 12, 220, 34, "Ir para Area de Trabalho", false);
+                    DrawButton(display, x + w - 180, y + 12, 156, 34, "Reiniciar Agora", true);
+                }
+                else
+                {
+                    DrawButton(display, x + 24, y + 12, 130, 34, "< Voltar", false);
+                    DrawButton(display, x + w - 180, y + 12, 156, 34, "Tentar Novamente", true);
+                }
             }
         }
     }
@@ -563,6 +609,7 @@ public class InstallerApp : Window
                 if (_termsAccepted && mouseX >= cx + cw - 160 && mouseX <= cx + cw - 24)
                 {
                     _step = 2;
+                    ScanDisks();
                     return;
                 }
             }
@@ -574,8 +621,8 @@ public class InstallerApp : Window
                     _step = 1;
                     return;
                 }
-                // Avancar
-                if (mouseX >= cx + cw - 160 && mouseX <= cx + cw - 24)
+                // Avancar (somente se ha disco detectado)
+                if (_detectedDisks.Count > 0 && mouseX >= cx + cw - 160 && mouseX <= cx + cw - 24)
                 {
                     _step = 3;
                     return;
@@ -587,6 +634,7 @@ public class InstallerApp : Window
                 if (mouseX >= cx + 24 && mouseX <= cx + 154)
                 {
                     _step = 2;
+                    ScanDisks();
                     return;
                 }
                 // Instalar Agora
@@ -599,18 +647,40 @@ public class InstallerApp : Window
             }
             else if (_step == 4 && _installFinished)
             {
-                // Ir para Area de Trabalho
-                if (mouseX >= cx + 24 && mouseX <= cx + 244)
+                if (_installSuccess)
                 {
-                    OnExitToDesktop?.Invoke();
-                    Close();
-                    return;
+                    // Ir para Area de Trabalho
+                    if (mouseX >= cx + 24 && mouseX <= cx + 244)
+                    {
+                        OnExitToDesktop?.Invoke();
+                        Close();
+                        return;
+                    }
+                    // Reiniciar Agora
+                    if (mouseX >= cx + cw - 180 && mouseX <= cx + cw - 24)
+                    {
+                        PowerDriver.Reboot();
+                        return;
+                    }
                 }
-                // Reiniciar Agora
-                if (mouseX >= cx + cw - 180 && mouseX <= cx + cw - 24)
+                else
                 {
-                    PowerDriver.Reboot();
-                    return;
+                    // Voltar para central de discos
+                    if (mouseX >= cx + 24 && mouseX <= cx + 154)
+                    {
+                        _step = 2;
+                        ScanDisks();
+                        return;
+                    }
+                    // Tentar Novamente
+                    if (mouseX >= cx + cw - 180 && mouseX <= cx + cw - 24)
+                    {
+                        _installStarted = false;
+                        _installFinished = false;
+                        _installSuccess = false;
+                        StartInstallationProcess();
+                        return;
+                    }
                 }
             }
         }
@@ -762,7 +832,10 @@ public class InstallerApp : Window
             _installFinished = true;
             _installSuccess = success;
             _progressPercent = 100;
-            _currentAction = success ? "Instalacao finalizada com exito!" : "Instalacao concluida com alertas.";
+            if (success)
+            {
+                _currentAction = "Instalacao finalizada com exito!";
+            }
         }
         catch (Exception ex)
         {

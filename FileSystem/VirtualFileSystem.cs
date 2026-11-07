@@ -31,15 +31,10 @@ public class VirtualFileSystem
 
         try
         {
-            var hdd = HardDiskInstaller.FindTargetHardDisk();
-            if (hdd != null)
+            if (HardDiskInstaller.IsSystemInstalledOnHardDisk())
             {
-                byte[] mbr = new byte[512];
-                hdd.ReadBlock(0, 1, mbr);
-                if (mbr[510] == 0x55 && mbr[511] == 0xAA && mbr[446] == 0x80)
-                {
-                    _isRealVfsMounted = true;
-                }
+                _isRealVfsMounted = true;
+                WriteFile(@"C:\installed.tag", "INSTALLED=1\nBOOT=HDD\n");
             }
         }
         catch { }

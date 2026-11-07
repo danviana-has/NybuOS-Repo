@@ -3,6 +3,7 @@
 --root:Cosmos.Kernel.HAL.X64
 C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\NybuOS_patched.dll
 -o:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\native\NybuOS.o
+-r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\BouncyCastle.Cryptography.dll
 -r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\Cosmos.Build.Analyzer.Patcher.dll
 -r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\Cosmos.Build.API.dll
 -r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\Cosmos.Kernel.Boot.Limine.dll
@@ -16,6 +17,7 @@ C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release
 -r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\Cosmos.Kernel.Plugs.dll
 -r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\Cosmos.Kernel.SourceGenerators.dll
 -r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\Cosmos.Kernel.System.dll
+-r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\Cosmos.Network.Http.dll
 -r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\Microsoft.CodeAnalysis.CSharp.dll
 -r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\Microsoft.CodeAnalysis.dll
 -r:C:\Users\dvian\OneDrive\Documentos\Desktop\ProjetosGui\NybuOS\NybuOS\obj\Release\net10.0\linux-x64\cosmos\ref\Microsoft.CSharp.dll
