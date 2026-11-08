@@ -53,6 +53,12 @@ public class DisplayDriver
 
         Clear(Color.Black);
         Display();
+
+        try
+        {
+            TrueTypeRenderer.Initialize();
+        }
+        catch { }
     }
 
     public void Clear(Color color)
@@ -217,7 +223,11 @@ public class DisplayDriver
     /// Renderiza uma superfície de vidro fosco (Frosted Glass) com elevada opacidade,
     /// mesclando o tom desejado com os pixels reais do wallpaper de fundo.
     /// </summary>
-    public void DrawFrostedGlass(int x, int y, int w, int h, Color tintColor, int alpha = 215, int cornerRadius = 12)
+    /// <summary>
+    /// Renderiza uma superfície de vidro fosco (Frosted Glass) translúcida com desfoque (blur estilo macOS),
+    /// difundindo e embaçando qualquer objeto ou elemento que passe atrás.
+    /// </summary>
+    public void DrawFrostedGlass(int x, int y, int w, int h, Color tintColor, int alpha = 165, int cornerRadius = 12)
     {
         if (_canvas == null || w <= 0 || h <= 0) return;
 
@@ -268,27 +278,40 @@ public class DisplayDriver
                 // Brilho specular sutil de vidro na borda superior
                 if (row == 0 || (row == 1 && col >= cornerRadius && col < w - cornerRadius))
                 {
-                    _canvas.DrawPoint(Color.FromArgb(180, 255, 255, 255), px, py);
+                    _canvas.DrawPoint(Color.FromArgb(190, 255, 255, 255), px, py);
                     continue;
                 }
 
-                if (_activeWallpaper != null && px < _activeWallpaper.Width && py < _activeWallpaper.Height)
+                // Amostragem com filtro de desfoque (box blur) dos elementos que passam atrás
+                int xL = px > 2 ? px - 2 : 0;
+                int xR = px + 2 < Width ? px + 2 : Width - 1;
+                int yU = py > 2 ? py - 2 : 0;
+                int yD = py + 2 < Height ? py + 2 : Height - 1;
+
+                Color c0 = _canvas.GetPointColor(px, py);
+                Color cL = _canvas.GetPointColor(xL, py);
+                Color cR = _canvas.GetPointColor(xR, py);
+                Color cU = _canvas.GetPointColor(px, yU);
+                Color cD = _canvas.GetPointColor(px, yD);
+
+                int wr = (c0.R + cL.R + cR.R + cU.R + cD.R) / 5;
+                int wg = (c0.G + cL.G + cR.G + cU.G + cD.G) / 5;
+                int wb = (c0.B + cL.B + cR.B + cU.B + cD.B) / 5;
+
+                // Fallback para o papel de parede se o canvas estiver preto
+                if (wr == 0 && wg == 0 && wb == 0 && _activeWallpaper != null && px < _activeWallpaper.Width && py < _activeWallpaper.Height)
                 {
                     uint wallPx = _activeWallpaper.Pixels[py * _activeWallpaper.Width + px];
-                    int wr = (int)((wallPx >> 16) & 0xFF);
-                    int wg = (int)((wallPx >> 8) & 0xFF);
-                    int wb = (int)(wallPx & 0xFF);
-
-                    int bR = (wr * (255 - alpha) + tR * alpha) / 255;
-                    int bG = (wg * (255 - alpha) + tG * alpha) / 255;
-                    int bB = (wb * (255 - alpha) + tB * alpha) / 255;
-
-                    _canvas.DrawPoint(Color.FromArgb(bR, bG, bB), px, py);
+                    wr = (int)((wallPx >> 16) & 0xFF);
+                    wg = (int)((wallPx >> 8) & 0xFF);
+                    wb = (int)(wallPx & 0xFF);
                 }
-                else
-                {
-                    _canvas.DrawPoint(tintColor, px, py);
-                }
+
+                int bR = (wr * (255 - alpha) + tR * alpha) / 255;
+                int bG = (wg * (255 - alpha) + tG * alpha) / 255;
+                int bB = (wb * (255 - alpha) + tB * alpha) / 255;
+
+                _canvas.DrawPoint(Color.FromArgb(bR, bG, bB), px, py);
             }
         }
 
@@ -312,166 +335,237 @@ public class DisplayDriver
 
     public void DrawTranslucentRectangle(int x, int y, int w, int h, Color tintColor)
     {
-        DrawFrostedGlass(x, y, w, h, tintColor, alpha: 220, cornerRadius: 8);
+        DrawFrostedGlass(x, y, w, h, tintColor, alpha: 165, cornerRadius: 8);
     }
 
     /// <summary>
-    /// Renderiza o Dock inferior profissional: cor cinza com gradiente branco/opacidade sem nenhuma transparência.
-    /// Possui cantos arredondados de 20px, brilho metálico suave no topo e contorno nítido.
+    /// Renderiza o Dock Flutuante do NybuOS Purple estilo macOS:
+    /// Borda grossa cinza (3px) com relevo 3D chanfrado (highlight no topo, shadow na base),
+    /// e centro totalmente translúcido com efeito de desfoque (blur) dos objetos que passam atrás.
     /// </summary>
-    /// <summary>
-    /// Renderiza o Dock Flutuante do NybuOS RV (Tema Light 3D): formato quadrado/retangular sólido,
-    /// APENAS COM AS VÉRTICES (CANTOS) ARREDONDADAS, fundo em cinza claro intenso com sutis degradês brancos.
-    /// 100% opaco e sólido.
-    /// </summary>
-    public void DrawOpaqueGradientDock(int x, int y, int w, int h, int cornerRadius = 10)
+    public void DrawOpaqueGradientDock(int x, int y, int w, int h, int cornerRadius = 12)
+    {
+        DrawMacOSDock(x, y, w, h, cornerRadius);
+    }
+
+    public void DrawMacOSDock(int x, int y, int w, int h, int cornerRadius = 12)
     {
         if (_canvas == null || w <= 0 || h <= 0) return;
 
         int r2 = cornerRadius * cornerRadius;
-        int innerR = Math.Max(0, cornerRadius - 1);
+        int innerR = Math.Max(0, cornerRadius - 3);
         int innerR2 = innerR * innerR;
 
-        Color borderColor = Color.FromArgb(160, 165, 178);
-        Color topHighlight = Color.FromArgb(255, 255, 255);
+        Color borderOuterHi = Theme.DockBorderOuterHighlight; // 3D highlight superior
+        Color borderOuterSh = Theme.DockBorderOuterShadow;    // 3D shadow inferior
+        Color borderMid = Theme.DockBorderMid;                // Borda cinza sólida média
+        Color borderInner = Theme.DockBorderInner;            // Contorno interno
+        Color tintColor = Theme.DockBg;
+        int alpha = 20; // 8% de opacidade e 92% de transparência real (Dock quase totalmente transparente estilo macOS)
+
+        int tR = tintColor.R;
+        int tG = tintColor.G;
+        int tB = tintColor.B;
 
         for (int row = 0; row < h; row++)
         {
             int py = y + row;
             if (py < 0 || py >= Height) continue;
 
-            float t = (float)row / (float)Math.Max(1, h - 1);
-            // Cinza claro intenso: 242 -> 220 com sutis degradês brancos no topo
-            int gr, gg, gb;
-            if (t < 0.25f)
-            {
-                float lt = t / 0.25f;
-                gr = (int)(250 - (lt * 12));
-                gg = (int)(252 - (lt * 13));
-                gb = (int)(255 - (lt * 14));
-            }
-            else
-            {
-                float lt = (t - 0.25f) / 0.75f;
-                gr = (int)(238 - (lt * 16));
-                gg = (int)(239 - (lt * 16));
-                gb = (int)(241 - (lt * 15));
-            }
-            Color rowColor = Color.FromArgb(gr, gg, gb);
-
             for (int col = 0; col < w; col++)
             {
                 int px = x + col;
                 if (px < 0 || px >= Width) continue;
 
-                bool isBorder = false;
-
-                // Verificação estrita apenas das 4 vértices (cantos)
+                // Distância das 4 vértices para cantos arredondados
+                int distCornerSq = 0;
+                bool isCorner = false;
                 if (col < cornerRadius && row < cornerRadius)
                 {
                     int dx = cornerRadius - col;
                     int dy = cornerRadius - row;
-                    int distSq = dx * dx + dy * dy;
-                    if (distSq > r2) continue; // Fora do raio do vértice
-                    if (distSq >= innerR2) isBorder = true;
+                    distCornerSq = dx * dx + dy * dy;
+                    isCorner = true;
                 }
                 else if (col >= w - cornerRadius && row < cornerRadius)
                 {
                     int dx = col - (w - cornerRadius - 1);
                     int dy = cornerRadius - row;
-                    int distSq = dx * dx + dy * dy;
-                    if (distSq > r2) continue;
-                    if (distSq >= innerR2) isBorder = true;
+                    distCornerSq = dx * dx + dy * dy;
+                    isCorner = true;
                 }
                 else if (col < cornerRadius && row >= h - cornerRadius)
                 {
                     int dx = cornerRadius - col;
                     int dy = row - (h - cornerRadius - 1);
-                    int distSq = dx * dx + dy * dy;
-                    if (distSq > r2) continue;
-                    if (distSq >= innerR2) isBorder = true;
+                    distCornerSq = dx * dx + dy * dy;
+                    isCorner = true;
                 }
                 else if (col >= w - cornerRadius && row >= h - cornerRadius)
                 {
                     int dx = col - (w - cornerRadius - 1);
                     int dy = row - (h - cornerRadius - 1);
-                    int distSq = dx * dx + dy * dy;
-                    if (distSq > r2) continue;
-                    if (distSq >= innerR2) isBorder = true;
-                }
-                else
-                {
-                    if (row == 0 || row == h - 1 || col == 0 || col == w - 1)
-                    {
-                        isBorder = true;
-                    }
+                    distCornerSq = dx * dx + dy * dy;
+                    isCorner = true;
                 }
 
-                if (isBorder)
+                if (isCorner && distCornerSq > r2)
                 {
-                    _canvas.DrawPoint(ApplyBrightness(borderColor), px, py);
+                    continue; // Fora do contorno do dock
                 }
-                else if (row == 1 && col >= cornerRadius && col < w - cornerRadius)
+
+                // Determina se está na borda grossa (espessura de 3 pixels)
+                bool isBorderRing0 = (row == 0 || row == h - 1 || col == 0 || col == w - 1) || (isCorner && distCornerSq >= (cornerRadius - 1) * (cornerRadius - 1));
+                bool isBorderRing1 = !isBorderRing0 && ((row == 1 || row == h - 2 || col == 1 || col == w - 2) || (isCorner && distCornerSq >= (cornerRadius - 2) * (cornerRadius - 2)));
+                bool isBorderRing2 = !isBorderRing0 && !isBorderRing1 && ((row == 2 || row == h - 3 || col == 2 || col == w - 3) || (isCorner && distCornerSq >= innerR2));
+
+                if (isBorderRing0)
                 {
-                    // Sutil linha de brilho branco superior
-                    _canvas.DrawPoint(ApplyBrightness(topHighlight), px, py);
+                    // Anel externo com relevo 3D (claro no topo/esquerda, escuro na base/direita)
+                    Color c = (row == 0 || (col == 0 && row < h / 2)) ? borderOuterHi : borderOuterSh;
+                    _canvas.DrawPoint(ApplyBrightness(c), px, py);
+                }
+                else if (isBorderRing1)
+                {
+                    // Anel central da borda grossa cinza
+                    _canvas.DrawPoint(ApplyBrightness(borderMid), px, py);
+                }
+                else if (isBorderRing2)
+                {
+                    // Anel interno da borda cinza 3D
+                    _canvas.DrawPoint(ApplyBrightness(borderInner), px, py);
                 }
                 else
                 {
-                    // 100% Sólido e Opaco, cinza claro intenso
-                    _canvas.DrawPoint(ApplyBrightness(rowColor), px, py);
+                    // CENTRO TOTALMENTE TRANSLÚCIDO COM DESFOQUE DOS OBJETOS AO FUNDO (macOS Style)
+                    if (row == 3 && col >= cornerRadius && col < w - cornerRadius)
+                    {
+                        // Sutil linha de reflexo de vidro (specular shine)
+                        _canvas.DrawPoint(Color.FromArgb(210, 255, 255, 255), px, py);
+                        continue;
+                    }
+
+                    int xL = px > 2 ? px - 2 : 0;
+                    int xR = px + 2 < Width ? px + 2 : Width - 1;
+                    int yU = py > 2 ? py - 2 : 0;
+                    int yD = py + 2 < Height ? py + 2 : Height - 1;
+
+                    Color c0 = _canvas.GetPointColor(px, py);
+                    Color cL = _canvas.GetPointColor(xL, py);
+                    Color cR = _canvas.GetPointColor(xR, py);
+                    Color cU = _canvas.GetPointColor(px, yU);
+                    Color cD = _canvas.GetPointColor(px, yD);
+
+                    int wr = (c0.R + cL.R + cR.R + cU.R + cD.R) / 5;
+                    int wg = (c0.G + cL.G + cR.G + cU.G + cD.G) / 5;
+                    int wb = (c0.B + cL.B + cR.B + cU.B + cD.B) / 5;
+
+                    if (wr == 0 && wg == 0 && wb == 0 && _activeWallpaper != null && px < _activeWallpaper.Width && py < _activeWallpaper.Height)
+                    {
+                        uint wallPx = _activeWallpaper.Pixels[py * _activeWallpaper.Width + px];
+                        wr = (int)((wallPx >> 16) & 0xFF);
+                        wg = (int)((wallPx >> 8) & 0xFF);
+                        wb = (int)(wallPx & 0xFF);
+                    }
+
+                    int bR = (wr * (255 - alpha) + tR * alpha) / 255;
+                    int bG = (wg * (255 - alpha) + tG * alpha) / 255;
+                    int bB = (wb * (255 - alpha) + tB * alpha) / 255;
+
+                    _canvas.DrawPoint(Color.FromArgb(bR, bG, bB), px, py);
                 }
             }
         }
     }
 
     /// <summary>
-    /// Renderiza a barra superior 3D Light: branca no topo com degradês cinzas profundos e relevo 3D.
+    /// Renderiza a barra superior minimalista translúcida estilo macOS:
+    /// Fundo em vidro fosco com desfoque e contorno sutil na base.
     /// </summary>
     public void Draw3DLightTopBar(int screenW, int height)
     {
+        DrawMacOSTopBar(screenW, height);
+    }
+
+    public void DrawMacOSTopBar(int screenW, int height)
+    {
         if (_canvas == null || screenW <= 0 || height <= 0) return;
 
-        Color bottomShadow = Color.FromArgb(135, 140, 154);
+        Color bottomBorder = Theme.TopBarBorder;
+        Color tintColor = Theme.TopBarBg;
+        int alpha = 160; // 62.7% opacidade (37.3% de transparência real estilo macOS)
+        int tR = tintColor.R;
+        int tG = tintColor.G;
+        int tB = tintColor.B;
 
         for (int y = 0; y < height; y++)
         {
-            float t = (float)y / (float)Math.Max(1, height - 1);
-            int r, g, b;
-            if (t < 0.55f)
+            if (y >= Height) break;
+
+            if (y == height - 1)
             {
-                float lt = t / 0.55f;
-                r = (int)(255 - (lt * 18));
-                g = (int)(255 - (lt * 18));
-                b = (int)(255 - (lt * 14));
+                // Borda inferior sutil estilo macOS
+                for (int x = 0; x < screenW; x++)
+                {
+                    _canvas.DrawPoint(ApplyBrightness(bottomBorder), x, y);
+                }
+                continue;
             }
-            else
-            {
-                float lt = (t - 0.55f) / 0.45f;
-                r = (int)(237 - (lt * 48));
-                g = (int)(237 - (lt * 47));
-                b = (int)(241 - (lt * 44));
-            }
-            Color rowColor = Color.FromArgb(r, g, b);
 
             for (int x = 0; x < screenW; x++)
             {
-                _canvas.DrawPoint(ApplyBrightness(rowColor), x, y);
-            }
-        }
+                if (x >= Width) break;
 
-        // Borda inferior 3D em cinza profundo
-        for (int x = 0; x < screenW; x++)
-        {
-            _canvas.DrawPoint(ApplyBrightness(bottomShadow), x, height - 1);
+                if (y == 0)
+                {
+                    _canvas.DrawPoint(Color.FromArgb(200, 255, 255, 255), x, y);
+                    continue;
+                }
+
+                // Amostragem com desfoque dos elementos ao fundo
+                int xL = x > 2 ? x - 2 : 0;
+                int xR = x + 2 < Width ? x + 2 : Width - 1;
+                int yU = y > 2 ? y - 2 : 0;
+                int yD = y + 2 < Height ? y + 2 : Height - 1;
+
+                Color c0 = _canvas.GetPointColor(x, y);
+                Color cL = _canvas.GetPointColor(xL, y);
+                Color cR = _canvas.GetPointColor(xR, y);
+                Color cU = _canvas.GetPointColor(x, yU);
+                Color cD = _canvas.GetPointColor(x, yD);
+
+                int wr = (c0.R + cL.R + cR.R + cU.R + cD.R) / 5;
+                int wg = (c0.G + cL.G + cR.G + cU.G + cD.G) / 5;
+                int wb = (c0.B + cL.B + cR.B + cU.B + cD.B) / 5;
+
+                if (wr == 0 && wg == 0 && wb == 0 && _activeWallpaper != null && x < _activeWallpaper.Width && y < _activeWallpaper.Height)
+                {
+                    uint wallPx = _activeWallpaper.Pixels[y * _activeWallpaper.Width + x];
+                    wr = (int)((wallPx >> 16) & 0xFF);
+                    wg = (int)((wallPx >> 8) & 0xFF);
+                    wb = (int)(wallPx & 0xFF);
+                }
+
+                int bR = (wr * (255 - alpha) + tR * alpha) / 255;
+                int bG = (wg * (255 - alpha) + tG * alpha) / 255;
+                int bB = (wb * (255 - alpha) + tB * alpha) / 255;
+
+                _canvas.DrawPoint(Color.FromArgb(bR, bG, bB), x, y);
+            }
         }
     }
 
     /// <summary>
-    /// Renderiza a moldura de janela no tema Light com cabeçalho idêntico ao dock (cinza claro intenso com sutis degradês brancos)
-    /// e corpo claro em design moderno 3D.
+    /// Renderiza a moldura de janela no tema minimalista macOS:
+    /// Cabeçalho translúcido em vidro fosco com desfoque dos elementos que passam atrás,
+    /// divisória nítida e corpo claro limpo.
     /// </summary>
     public void DrawWindowFrameLight(int x, int y, int w, int h, int titleH, int cornerRadius, bool isActive)
+    {
+        DrawMacOSWindowFrame(x, y, w, h, titleH, cornerRadius, isActive);
+    }
+
+    public void DrawMacOSWindowFrame(int x, int y, int w, int h, int titleH, int cornerRadius, bool isActive)
     {
         if (_canvas == null || w <= 0 || h <= 0) return;
 
@@ -479,10 +573,17 @@ public class DisplayDriver
         int innerR = Math.Max(0, cornerRadius - 1);
         int innerR2 = innerR * innerR;
 
-        Color borderColor = isActive ? Color.FromArgb(155, 160, 174) : Color.FromArgb(185, 190, 202);
-        Color titleHighlight = Color.FromArgb(255, 255, 255);
-        Color titleDivider = Color.FromArgb(170, 175, 188);
-        Color bodyBg = Color.FromArgb(246, 247, 251);
+        Color borderColor = isActive ? Theme.WindowBorder : Theme.WindowBorderInactive;
+        Color titleHighlight = Color.FromArgb(210, 255, 255, 255);
+        Color titleDivider = Color.FromArgb(190, 195, 208);
+        Color bodyBg = Theme.WindowBg;
+        Color titleTint = Theme.WindowHeaderBg;
+        int titleAlpha = isActive ? 160 : 175;
+        int bodyAlpha = 168;
+
+        int tR = titleTint.R;
+        int tG = titleTint.G;
+        int tB = titleTint.B;
 
         for (int row = 0; row < h; row++)
         {
@@ -490,32 +591,6 @@ public class DisplayDriver
             if (py < 0 || py >= Height) continue;
 
             bool isTitle = row < titleH;
-            Color rowColor;
-
-            if (isTitle)
-            {
-                float t = (float)row / (float)Math.Max(1, titleH - 1);
-                int gr, gg, gb;
-                if (t < 0.25f)
-                {
-                    float lt = t / 0.25f;
-                    gr = (int)(250 - (lt * 12));
-                    gg = (int)(252 - (lt * 13));
-                    gb = (int)(255 - (lt * 14));
-                }
-                else
-                {
-                    float lt = (t - 0.25f) / 0.75f;
-                    gr = (int)(238 - (lt * 16));
-                    gg = (int)(239 - (lt * 16));
-                    gb = (int)(241 - (lt * 15));
-                }
-                rowColor = Color.FromArgb(gr, gg, gb);
-            }
-            else
-            {
-                rowColor = bodyBg;
-            }
 
             for (int col = 0; col < w; col++)
             {
@@ -572,17 +647,77 @@ public class DisplayDriver
                 }
                 else if (row == titleH - 1)
                 {
-                    // Divisória do cabeçalho com o corpo da janela
+                    // Divisória sutil do cabeçalho com o corpo da janela
                     _canvas.DrawPoint(ApplyBrightness(titleDivider), px, py);
                 }
                 else if (row == 1 && col >= cornerRadius && col < w - cornerRadius)
                 {
-                    // Sutil brilho branco superior
-                    _canvas.DrawPoint(ApplyBrightness(titleHighlight), px, py);
+                    // Sutil brilho de vidro superior
+                    _canvas.DrawPoint(titleHighlight, px, py);
+                }
+                else if (isTitle)
+                {
+                    // Cabeçalho Translúcido com efeito de desfoque dos elementos que passam atrás
+                    int xL = px > 2 ? px - 2 : 0;
+                    int xR = px + 2 < Width ? px + 2 : Width - 1;
+                    int yU = py > 2 ? py - 2 : 0;
+                    int yD = py + 2 < Height ? py + 2 : Height - 1;
+
+                    Color c0 = _canvas.GetPointColor(px, py);
+                    Color cL = _canvas.GetPointColor(xL, py);
+                    Color cR = _canvas.GetPointColor(xR, py);
+                    Color cU = _canvas.GetPointColor(px, yU);
+                    Color cD = _canvas.GetPointColor(px, yD);
+
+                    int wr = (c0.R + cL.R + cR.R + cU.R + cD.R) / 5;
+                    int wg = (c0.G + cL.G + cR.G + cU.G + cD.G) / 5;
+                    int wb = (c0.B + cL.B + cR.B + cU.B + cD.B) / 5;
+
+                    if (wr == 0 && wg == 0 && wb == 0 && _activeWallpaper != null && px < _activeWallpaper.Width && py < _activeWallpaper.Height)
+                    {
+                        uint wallPx = _activeWallpaper.Pixels[py * _activeWallpaper.Width + px];
+                        wr = (int)((wallPx >> 16) & 0xFF);
+                        wg = (int)((wallPx >> 8) & 0xFF);
+                        wb = (int)(wallPx & 0xFF);
+                    }
+
+                    int bR = (wr * (255 - titleAlpha) + tR * titleAlpha) / 255;
+                    int bG = (wg * (255 - titleAlpha) + tG * titleAlpha) / 255;
+                    int bB = (wb * (255 - titleAlpha) + tB * titleAlpha) / 255;
+
+                    _canvas.DrawPoint(Color.FromArgb(bR, bG, bB), px, py);
                 }
                 else
                 {
-                    _canvas.DrawPoint(ApplyBrightness(rowColor), px, py);
+                    // Corpo da janela translúcido com efeito de desfoque dos elementos ao fundo (66% opacidade / 34% transparência estilo macOS)
+                    int xL = px > 2 ? px - 2 : 0;
+                    int xR = px + 2 < Width ? px + 2 : Width - 1;
+                    int yU = py > 2 ? py - 2 : 0;
+                    int yD = py + 2 < Height ? py + 2 : Height - 1;
+
+                    Color c0 = _canvas.GetPointColor(px, py);
+                    Color cL = _canvas.GetPointColor(xL, py);
+                    Color cR = _canvas.GetPointColor(xR, py);
+                    Color cU = _canvas.GetPointColor(px, yU);
+                    Color cD = _canvas.GetPointColor(px, yD);
+
+                    int wr = (c0.R + cL.R + cR.R + cU.R + cD.R) / 5;
+                    int wg = (c0.G + cL.G + cR.G + cU.G + cD.G) / 5;
+                    int wb = (c0.B + cL.B + cR.B + cU.B + cD.B) / 5;
+
+                    if (wr == 0 && wg == 0 && wb == 0 && _activeWallpaper != null && px < _activeWallpaper.Width && py < _activeWallpaper.Height)
+                    {
+                        uint wallPx = _activeWallpaper.Pixels[py * _activeWallpaper.Width + px];
+                        wr = (int)((wallPx >> 16) & 0xFF);
+                        wg = (int)((wallPx >> 8) & 0xFF);
+                        wb = (int)(wallPx & 0xFF);
+                    }
+
+                    int bR = (wr * (255 - bodyAlpha) + bodyBg.R * bodyAlpha) / 255;
+                    int bG = (wg * (255 - bodyAlpha) + bodyBg.G * bodyAlpha) / 255;
+                    int bB = (wb * (255 - bodyAlpha) + bodyBg.B * bodyAlpha) / 255;
+
+                    _canvas.DrawPoint(Color.FromArgb(bR, bG, bB), px, py);
                 }
             }
         }
@@ -654,8 +789,23 @@ public class DisplayDriver
     }
 
     /// <summary>
-    /// Renderiza texto usando nossa própria fonte idêntica à do Cosmos OS (CosmosNativeFont),
-    /// sem cortar letras nem sofrer bugs de alinhamento.
+    /// Mede a largura em pixels de uma string, utilizando TrueType Arial se carregada
+    /// ou fallback para a largura fixa de CosmosNativeFont.
+    /// </summary>
+    public int MeasureString(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return 0;
+        if (TrueTypeRenderer.IsLoaded)
+        {
+            return TrueTypeRenderer.MeasureString(text);
+        }
+        return text.Length * CosmosNativeFont.Width;
+    }
+
+    /// <summary>
+    /// Renderiza texto usando fonte TrueType Arial com Alpha Blending avançado (0 a 255)
+    /// com o fundo da tela para contornos suaves e arredondados.
+    /// Fallback automático para CosmosNativeFont se a fonte TTF não estiver disponível.
     /// </summary>
     public void DrawString(int x, int y, string text, Color color, Color? bg = null)
     {
@@ -663,6 +813,12 @@ public class DisplayDriver
         if (x >= Width || y >= Height) return;
 
         Color finalCol = ApplyBrightness(color);
+
+        if (TrueTypeRenderer.IsLoaded)
+        {
+            TrueTypeRenderer.DrawString(_canvas, x, y, text, finalCol, bg, _activeWallpaper);
+            return;
+        }
 
         int curX = x;
         int curY = y;
@@ -897,9 +1053,10 @@ public class DisplayDriver
 
         if (!string.IsNullOrEmpty(text))
         {
-            int textW = text.Length * CosmosNativeFont.Width;
+            int textW = MeasureString(text);
+            int textH = TrueTypeRenderer.IsLoaded ? TrueTypeRenderer.DefaultHeight : CosmosNativeFont.Height;
             int textX = x + Math.Max(2, (w - textW) / 2);
-            int textY = y + Math.Max(2, (h - CosmosNativeFont.Height) / 2);
+            int textY = y + Math.Max(2, (h - textH) / 2);
             DrawString(textX, textY, text, fg);
         }
     }
@@ -926,7 +1083,8 @@ public class DisplayDriver
 
         if (!string.IsNullOrEmpty(text))
         {
-            DrawString(x + 6, y + (h - CosmosNativeFont.Height) / 2, text, Theme.TextPrimary);
+            int textH = TrueTypeRenderer.IsLoaded ? TrueTypeRenderer.DefaultHeight : CosmosNativeFont.Height;
+            DrawString(x + 6, y + (h - textH) / 2, text, Theme.TextPrimary);
         }
     }
 

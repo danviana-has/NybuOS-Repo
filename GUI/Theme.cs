@@ -4,41 +4,47 @@ using System.Drawing;
 namespace NybuOS.GUI;
 
 /// <summary>
-/// Sistema de temas do NybuOS RV (Revolution) no modo Light Theme com acabamento 3D:
-/// Barra superior em degradê branco para cinzas profundos em relevo, dock flutuante
-/// e cabeçalhos de janela em cinza claro intenso com sutis degradês brancos.
+/// Sistema de temas do NybuOS Purple:
+/// Interface minimalista reformulada com efeito de vidro fosco translúcido e desfoque (estilo macOS).
+/// Dock inferior com borda grossa cinza em relevo 3D e centro translúcido com desfoque dos elementos ao fundo.
+/// Barra superior translúcida e cabeçalhos de janela com acabamento de vidro refinado.
 /// </summary>
 public static class Theme
 {
     /// <summary>
-    /// Cor de destaque do sistema (System Accent). Padrão: Azul Apple (#007AFF)
+    /// Cor de destaque principal do sistema: Violeta / Roxo moderno do NybuOS Purple (#8E44ED).
     /// </summary>
-    public static Color AccentColor { get; set; } = Color.FromArgb(0, 122, 255);
+    public static Color AccentColor { get; set; } = Color.FromArgb(142, 68, 237);
 
-    // Barra Superior Translúcida / 3D Light
-    public static Color TopBarBg => Color.FromArgb(248, 249, 252);
-    public static Color TopBarAlphaColor => Color.FromArgb(235, 248, 249, 252);
-    public static Color TopBarBorder => Color.FromArgb(145, 150, 162);
+    // Barra Superior Translúcida (macOS Style - 62.7% opacidade / 37.3% transparência)
+    public static Color TopBarBg => Color.FromArgb(242, 244, 250);
+    public static Color TopBarAlphaColor => Color.FromArgb(160, 242, 244, 250);
+    public static Color TopBarBorder => Color.FromArgb(180, 184, 196);
 
-    // Dock Flutuante 3D Light (Cinza claro intenso com sutis degradês de branco)
-    public static Color DockBg => Color.FromArgb(228, 231, 238);
-    public static Color DockAlphaColor => Color.FromArgb(255, 228, 231, 238);
-    public static Color DockBorder => Color.FromArgb(160, 165, 178);
+    // Dock Flutuante (Borda grossa cinza 3D e centro quase transparente - 8% opacidade / 92% transparência)
+    public static Color DockBg => Color.FromArgb(240, 242, 248);
+    public static Color DockAlphaColor => Color.FromArgb(20, 240, 242, 248);
+    public static Color DockBorderOuterHighlight => Color.FromArgb(215, 218, 228); // 3D highlight superior
+    public static Color DockBorderOuterShadow => Color.FromArgb(120, 124, 136);    // 3D shadow inferior
+    public static Color DockBorderMid => Color.FromArgb(165, 170, 182);            // Borda cinza sólida
+    public static Color DockBorderInner => Color.FromArgb(145, 150, 162);          // Contorno interno
+    public static Color DockBorder => DockBorderMid;
     public static Color DockHighlight => Color.FromArgb(255, 255, 255);
-    public static Color DockSeparator => Color.FromArgb(185, 190, 202);
+    public static Color DockSeparator => Color.FromArgb(175, 180, 194);
 
     // Barra de Tarefas
     public static Color TaskbarBg => TopBarBg;
     public static Color TaskbarAlphaColor => TopBarAlphaColor;
     public static Color TaskbarBorder => TopBarBorder;
 
-    // Janelas Light Theme (Design 3D e cabeçalho idêntico ao dock)
-    public static Color WindowBg => Color.FromArgb(246, 247, 251);
-    public static Color WindowHeaderBg => Color.FromArgb(228, 231, 238);
+    // Janelas (Design minimalista translúcido estilo macOS - 62.7% a 66% opacidade)
+    public static Color WindowBg => Color.FromArgb(248, 249, 252);
+    public static Color WindowHeaderBg => Color.FromArgb(240, 242, 248);
+    public static Color WindowHeaderAlphaColor => Color.FromArgb(160, 240, 242, 248);
     public static Color WindowBorder => Color.FromArgb(160, 165, 178);
     public static Color WindowBorderInactive => Color.FromArgb(195, 200, 210);
 
-    // Botões Circulares de Janela (Traffic Lights)
+    // Botões Circulares de Janela (Traffic Lights estilo macOS)
     public static Color CloseButton => Color.FromArgb(255, 95, 86);         // #FF5F56
     public static Color CloseButtonBorder => Color.FromArgb(224, 68, 62);   // #E0443E
     public static Color MinimizeButton => Color.FromArgb(255, 189, 46);      // #FFBD2E
@@ -48,12 +54,12 @@ public static class Theme
 
     // Superfície de controles, caixas de diálogo e painéis
     public static Color Surface => Color.FromArgb(255, 255, 255);
-    public static Color SurfaceLight => Color.FromArgb(242, 244, 248);
-    public static Color SurfaceHover => Color.FromArgb(224, 228, 236);
-    public static Color WindowClientBg => Color.FromArgb(246, 247, 251);
+    public static Color SurfaceLight => Color.FromArgb(244, 245, 250);
+    public static Color SurfaceHover => Color.FromArgb(232, 235, 244);
+    public static Color WindowClientBg => Color.FromArgb(248, 249, 252);
     public static Color InputBg => Color.FromArgb(255, 255, 255);
 
-    // Bordas de controle e relevo 3D
+    // Bordas de controle
     public static Color LightBorder => Color.FromArgb(255, 255, 255);
     public static Color ShadowBorder => Color.FromArgb(175, 180, 192);
     public static Color DarkBorder => Color.FromArgb(135, 140, 154);
@@ -62,12 +68,12 @@ public static class Theme
     public static Color TitleActive => AccentColor;
     public static Color TitleInactive => Color.FromArgb(215, 218, 226);
     public static Color TitleTextActive => Color.FromArgb(22, 24, 30);
-    public static Color TitleTextInactive => Color.FromArgb(100, 105, 120);
+    public static Color TitleTextInactive => Color.FromArgb(110, 115, 130);
 
     // Botões e Ações
-    public static Color ButtonBg => Color.FromArgb(235, 238, 244);
+    public static Color ButtonBg => Color.FromArgb(238, 240, 246);
     public static Color ButtonAccentBg => AccentColor;
-    public static Color ButtonBorder => Color.FromArgb(175, 180, 194);
+    public static Color ButtonBorder => Color.FromArgb(180, 185, 198);
 
     // Textos (Tema Claro com alto contraste)
     public static Color Text => Color.FromArgb(22, 24, 30);
@@ -82,7 +88,7 @@ public static class Theme
     public static Color SelectionBg => AccentColor;
 
     // Menu Dropdown NybuOS
-    public static Color StartMenuBg => Color.FromArgb(250, 251, 253);
-    public static Color StartMenuSidebar => Color.FromArgb(238, 241, 246);
+    public static Color StartMenuBg => Color.FromArgb(252, 252, 254);
+    public static Color StartMenuSidebar => Color.FromArgb(240, 242, 248);
     public static Color StartMenuHover => AccentColor;
 }

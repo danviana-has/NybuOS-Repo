@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "0kokOeeUzGk=",
+  "dgSpecHash": "X/bq5Ki28Lk=",
   "success": true,
   "projectFilePath": "C:\\Users\\dvian\\OneDrive\\Documentos\\Desktop\\ProjetosGui\\NybuOS\\NybuOS\\NybuOS.csproj",
   "expectedPackageFiles": [
@@ -25,6 +25,7 @@
     "C:\\Users\\dvian\\.nuget\\packages\\cosmos.kernel.sourcegenerators\\3.0.95\\cosmos.kernel.sourcegenerators.3.0.95.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\cosmos.kernel.system\\3.0.95\\cosmos.kernel.system.3.0.95.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\cosmos.network.http\\3.0.0\\cosmos.network.http.3.0.0.nupkg.sha512",
+    "C:\\Users\\dvian\\.nuget\\packages\\lunarlabs.fonts\\1.0.3\\lunarlabs.fonts.1.0.3.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\microsoft.codeanalysis.analyzers\\3.11.0\\microsoft.codeanalysis.analyzers.3.11.0.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\microsoft.codeanalysis.common\\4.14.0\\microsoft.codeanalysis.common.4.14.0.nupkg.sha512",
     "C:\\Users\\dvian\\.nuget\\packages\\microsoft.codeanalysis.csharp\\4.14.0\\microsoft.codeanalysis.csharp.4.14.0.nupkg.sha512",

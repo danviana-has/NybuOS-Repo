@@ -116,7 +116,7 @@ public class Kernel : Cosmos.Kernel.System.Kernel
             }
 
             // Nome do Sistema Operacional
-            string title = "NybuOS RV";
+            string title = "NybuOS Purple";
             int titleW = title.Length * CosmosNativeFont.Width;
             _display.DrawString(cx - (titleW / 2), cy + 44, title, Color.White);
 
@@ -195,10 +195,15 @@ public class Kernel : Cosmos.Kernel.System.Kernel
             LaunchFileManager(@"C:\Documents");
         }));
 
+        _desktopIcons.Add(new DesktopIcon("Downloads", () => IconResources.DownloadCentral32 ?? IconResources.Doc32, startX, startY + (spacingY * 3), () =>
+        {
+            LaunchFileManager(@"C:\Downloads");
+        }));
+
         // O ícone do instalador SÓ é exibido na Área de Trabalho quando o sistema estiver rodando da ISO Live
         if (!_isInstalled)
         {
-            _desktopIcons.Add(new DesktopIcon("Instalar", () => IconResources.Installer32, startX, startY + (spacingY * 2), () =>
+            _desktopIcons.Add(new DesktopIcon("Instalar", () => IconResources.Installer32, startX, startY + (spacingY * 3), () =>
             {
                 LaunchInstaller();
             }));
@@ -210,7 +215,7 @@ public class Kernel : Cosmos.Kernel.System.Kernel
         switch (item)
         {
             case StartMenuItem.FileManager:
-                LaunchFileManager(@"C:\Documents");
+                LaunchFileManager(@"C:\");
                 break;
             case StartMenuItem.TextEditor:
                 LaunchTextEditor(null);
@@ -241,6 +246,9 @@ public class Kernel : Cosmos.Kernel.System.Kernel
                 break;
             case StartMenuItem.Updater:
                 LaunchUpdater();
+                break;
+            case StartMenuItem.DownloadCentral:
+                LaunchDownloadCentral();
                 break;
             case StartMenuItem.About:
                 LaunchAbout();
@@ -337,6 +345,25 @@ public class Kernel : Cosmos.Kernel.System.Kernel
         int winY = Math.Max(40, (_display.Height - winH) / 2);
 
         var app = new UpdaterApp(_nextWindowId++, winX, winY);
+        _windowManager.AddWindow(app);
+    }
+
+    public void LaunchDownloadCentral()
+    {
+        int winW = 640;
+        int winH = 390;
+        int winX = Math.Max(20, (_display.Width - winW) / 2);
+        int winY = Math.Max(40, (_display.Height - winH) / 2);
+
+        var app = new DownloadCentralApp(_nextWindowId++, winX, winY, _vfs);
+        app.OnOpenFileInMedia = (path) =>
+        {
+            LaunchMediaReproduction();
+        };
+        app.OnOpenFileInTextEditor = (path) =>
+        {
+            LaunchTextEditor(path);
+        };
         _windowManager.AddWindow(app);
     }
 

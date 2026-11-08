@@ -49,13 +49,13 @@ public class DesktopIcon
         }
 
         // Fundo do texto em cápsula de vidro fosco claro para leitura 100% nítida em Full HD
-        int textW = Title.Length * CosmosNativeFont.Width;
+        int textW = display.MeasureString(Title);
         int badgeW = textW + 16;
         int badgeX = X + Math.Max(0, (Width - badgeW) / 2);
         int badgeY = iconBottom + 8;
 
-        display.DrawFrostedGlass(badgeX, badgeY, badgeW, 24, Theme.Surface, alpha: 240, cornerRadius: 6);
-        display.DrawRectangle(badgeX, badgeY, badgeW, 24, Theme.ShadowBorder);
-        display.DrawString(badgeX + 8, badgeY + 4, Title, Theme.TextPrimary);
+        display.DrawFrostedGlass(badgeX, badgeY, badgeW, 26, Theme.Surface, alpha: 240, cornerRadius: 6);
+        display.DrawRectangle(badgeX, badgeY, badgeW, 26, Theme.ShadowBorder);
+        display.DrawString(badgeX + 8, badgeY + 2, Title, Theme.TextPrimary);
     }
 }

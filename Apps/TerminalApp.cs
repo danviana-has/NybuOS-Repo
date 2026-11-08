@@ -48,9 +48,9 @@ public class TerminalApp : Window
         // Borda chanfrada afundada para emular terminal
         display.Draw3DBevel(cx, cy, cw, ch, true);
 
-        int charW = CosmosNativeFont.Width;
-        int charH = CosmosNativeFont.Height;
-        int lineHeight = charH + 2;
+        int charW = TrueTypeRenderer.IsLoaded ? 11 : CosmosNativeFont.Width;
+        int charH = TrueTypeRenderer.IsLoaded ? TrueTypeRenderer.DefaultHeight : CosmosNativeFont.Height;
+        int lineHeight = charH + 3;
         int maxCharsPerLine = Math.Max(10, (cw - 24) / charW);
 
         // Monta lista de linhas formatadas com quebra de linha visual para não ultrapassar a janela
@@ -159,6 +159,7 @@ public class TerminalApp : Window
                 _history.Add("  ver          - Exibe a versao do sistema");
                 _history.Add("  cls / clear  - Limpa a janela do terminal");
                 _history.Add("  time         - Exibe a hora do relogio interno");
+                _history.Add("  downloadfile <url> - Baixa arquivo via HTTP/HTTPS");
                 _history.Add("  shutdown     - Desliga o computador com seguranca");
                 break;
 
@@ -168,7 +169,7 @@ public class TerminalApp : Window
                 break;
 
             case "ver":
-                _history.Add("NybuOS versao 1.0.0 [Cosmos C# / Native AOT]");
+                _history.Add("NybuOS Purple versao 1.2.0 [Cosmos C# / Native AOT]");
                 break;
 
             case "time":
@@ -318,6 +319,50 @@ public class TerminalApp : Window
                     else
                     {
                         _history.Add("Arquivo nao encontrado.");
+                    }
+                }
+                break;
+
+            case "downloadfile":
+            case "download":
+                if (parts.Length < 2)
+                {
+                    _history.Add("Sintaxe: downloadfile <url>");
+                }
+                else
+                {
+                    string url = parts[1].Trim();
+                    _history.Add($"Conectando: {url}...");
+                    try
+                    {
+                        using var client = new Cosmos.Network.Http.HttpClient
+                        {
+                            Timeout = TimeSpan.FromSeconds(30),
+                            SslProtocols = System.Security.Authentication.SslProtocols.None,
+                            SslVerification = Cosmos.Network.Http.SslVerification.NoVerification
+                        };
+                        byte[] data = client.GetByteArray(url);
+                        if (data != null && data.Length > 0)
+                        {
+                            string fileName = "download.bin";
+                            int slash = url.LastIndexOf('/');
+                            if (slash >= 0 && slash < url.Length - 1)
+                            {
+                                fileName = url.Substring(slash + 1);
+                                if (fileName.Contains('?')) fileName = fileName.Substring(0, fileName.IndexOf('?'));
+                            }
+                            string dest = _currentDir.TrimEnd('\\') + "\\" + fileName;
+                            _vfs.WriteFile(dest, data);
+                            _history.Add($"Concluido: {data.Length / 1024} KB gravados em {dest}");
+                        }
+                        else
+                        {
+                            _history.Add("Erro: Nenhum dado recebido do servidor.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _history.Add($"Falha no download: {ex.Message}");
                     }
                 }
                 break;

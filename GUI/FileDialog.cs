@@ -95,16 +95,16 @@ public class FileDialog : Window
         display.DrawFilledRectangle(listX, listY, listW, listH, Theme.InputBg);
         display.DrawRectangle(listX, listY, listW, listH, Theme.LightBorder);
 
-        int maxVisible = listH / 18;
+        int maxVisible = listH / 24;
         for (int i = 0; i < Math.Min(_files.Count, maxVisible); i++)
         {
-            int itemY = listY + 2 + (i * 18);
+            int itemY = listY + 2 + (i * 24);
             bool isSel = (i == _selectedIndex);
             string fName = Path.GetFileName(_files[i]);
 
             if (isSel)
             {
-                display.DrawFilledRectangle(listX + 2, itemY, listW - 4, 16, Theme.AccentColor);
+                display.DrawFilledRectangle(listX + 2, itemY, listW - 4, 22, Theme.AccentColor);
                 display.DrawString(listX + 6, itemY + 1, fName, Color.White);
             }
             else
@@ -150,7 +150,7 @@ public class FileDialog : Window
         // Clique na lista de arquivos
         if (mouseX >= listX && mouseX <= listX + listW && mouseY >= listY && mouseY <= listY + listH)
         {
-            int clickedIndex = (mouseY - listY) / 18;
+            int clickedIndex = (mouseY - listY) / 24;
             if (clickedIndex >= 0 && clickedIndex < _files.Count)
             {
                 _selectedIndex = clickedIndex;

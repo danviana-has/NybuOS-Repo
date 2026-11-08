@@ -150,6 +150,8 @@ public static class HardDiskInstaller
             uint deskCluster = fat32.CreateDirectory(2, "DESKTOP");
             uint progCluster = fat32.CreateDirectory(2, "PROGRAMS");
             uint nybuCluster = fat32.CreateDirectory(2, "NYBUOS");
+            uint downCluster = fat32.CreateDirectory(2, "DOWNLOADS");
+            fat32.WriteFile(downCluster, "INFO.TXT", "info.txt", Encoding.ASCII.GetBytes("Pasta de downloads do NybuOS.\n"));
 
             // 5. Instala arquivos do carregador Limine em todos os pontos de busca padrão (BIOS + UEFI)
             progress(65, "Gravando configuracao e binarios do Limine (BIOS + UEFI)...");
@@ -987,6 +989,43 @@ public class DirectFat32
         }
         catch { }
         return 0;
+    }
+
+    public void ReadDirectoryEntries(uint dirCluster, out System.Collections.Generic.List<string> files, out System.Collections.Generic.List<string> dirs)
+    {
+        files = new System.Collections.Generic.List<string>();
+        dirs = new System.Collections.Generic.List<string>();
+        try
+        {
+            ulong lba = GetClusterLba(dirCluster);
+            for (int s = 0; s < _spc; s++)
+            {
+                byte[] sec = ReadSector((uint)(lba + (ulong)s));
+                for (int off = 0; off <= 512 - 32; off += 32)
+                {
+                    if (sec[off] == 0x00) return;
+                    if (sec[off] == 0xE5) continue;
+                    if (sec[off + 11] == 0x0F) continue; // LFN
+                    if ((sec[off + 11] & 0x08) != 0) continue; // Volume Label
+
+                    string rawName = Encoding.ASCII.GetString(sec, off, 8).TrimEnd();
+                    string rawExt = Encoding.ASCII.GetString(sec, off + 8, 3).TrimEnd();
+                    if (rawName == "." || rawName == "..") continue;
+
+                    string entryName = string.IsNullOrEmpty(rawExt) ? rawName : rawName + "." + rawExt;
+
+                    if ((sec[off + 11] & 0x10) != 0)
+                    {
+                        if (!dirs.Contains(entryName)) dirs.Add(entryName);
+                    }
+                    else
+                    {
+                        if (!files.Contains(entryName)) files.Add(entryName);
+                    }
+                }
+            }
+        }
+        catch { }
     }
 
     private uint AllocateCluster()

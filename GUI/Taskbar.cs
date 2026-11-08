@@ -19,6 +19,7 @@ public enum StartMenuItem
     Terminal,
     Installer,
     Updater,
+    DownloadCentral,
     About,
     Shutdown
 }
@@ -72,6 +73,7 @@ public class Taskbar
         new DockItem("Planilha", StartMenuItem.Spreadsheet, () => IconResources.SpreadsheetDock),
         new DockItem("Terminal", StartMenuItem.Terminal, () => IconResources.TerminalDock),
         new DockItem("Atualizacoes", StartMenuItem.Updater, () => IconResources.UpdaterDock),
+        new DockItem("Downloads", StartMenuItem.DownloadCentral, () => IconResources.DownloadCentralDock),
         new DockItem("Instalar no HD", StartMenuItem.Installer, () => IconResources.InstallerDock),
         new DockItem("Sobre o NybuOS", StartMenuItem.About, () => IconResources.AboutDock),
         new DockItem("Lixeira", StartMenuItem.None, () => IconResources.TrashDock, separator: true),
@@ -136,27 +138,28 @@ public class Taskbar
         }
 
         // Título do aplicativo atualmente ativo (em destaque escuro de alto contraste)
-        string activeApp = _windowManager.ActiveWindow?.Title ?? "NybuOS RV";
+        string activeApp = _windowManager.ActiveWindow?.Title ?? "NybuOS Purple";
         if (activeApp.Contains(" - "))
         {
             activeApp = activeApp.Substring(0, activeApp.IndexOf(" - "));
         }
-        int textY = (TopBarHeight - CosmosNativeFont.Height) / 2;
+        int fontH = TrueTypeRenderer.IsLoaded ? TrueTypeRenderer.DefaultHeight : CosmosNativeFont.Height;
+        int textY = (TopBarHeight - fontH) / 2;
         display.DrawString(48, textY, activeApp, Theme.TextPrimary);
 
         // Placeholders de menus padrão do sistema
-        int curMenuX = 48 + (activeApp.Length * CosmosNativeFont.Width) + 24;
+        int curMenuX = 48 + display.MeasureString(activeApp) + 24;
         string[] standardMenus = new string[] { "Arquivo", "Editar", "Visualizar", "Ir", "Janela", "Ajuda" };
         foreach (var m in standardMenus)
         {
             display.DrawString(curMenuX, textY, m, Theme.TextSecondary);
-            curMenuX += (m.Length * CosmosNativeFont.Width) + 18;
+            curMenuX += display.MeasureString(m) + 18;
         }
 
         // Canto Superior Direito: Relógio e Placeholders (Wi-Fi, Volume, Bateria, Lupa Spotlight, Central de Controle)
         DateTime now = DateTime.Now;
         string timeStr = $"{now:ddd d MMM}  {now.Hour:D2}:{now.Minute:D2}";
-        int clockW = timeStr.Length * CosmosNativeFont.Width;
+        int clockW = display.MeasureString(timeStr);
         int clockX = screenW - clockW - 14;
 
         display.DrawString(clockX, textY, timeStr, Theme.TextPrimary);
@@ -335,12 +338,15 @@ public class Taskbar
     {
         int menuX = 8;
         int menuY = TopBarHeight + 2;
-        int menuW = 230;
-        int itemH = 28;
+        int menuW = 270;
+        int itemH = 32;
 
         string[] items = new string[]
         {
-            "Sobre este NybuOS RV",
+            "Sobre este NybuOS Purple",
+            "Preferencias do Sistema...",
+            "Atualizacoes do Sistema...",
+            "Download Central...",
             "Preferencias do Sistema...",
             "Atualizacoes do Sistema...",
             "-",
@@ -373,7 +379,8 @@ public class Taskbar
             }
 
             Color textCol = isHover ? Color.White : (label.Contains("Desligar") ? Color.FromArgb(248, 113, 113) : Theme.TextPrimary);
-            display.DrawString(menuX + 16, iy + (itemH - CosmosNativeFont.Height) / 2, label, textCol);
+            int fH = TrueTypeRenderer.IsLoaded ? TrueTypeRenderer.DefaultHeight : CosmosNativeFont.Height;
+            display.DrawString(menuX + 16, iy + (itemH - fH) / 2, label, textCol);
         }
     }
 
@@ -394,8 +401,8 @@ public class Taskbar
         {
             int menuX = 8;
             int menuY = TopBarHeight + 2;
-            int menuW = 230;
-            int itemH = 28;
+            int menuW = 270;
+            int itemH = 32;
 
             if (mouseX >= menuX && mouseX <= menuX + menuW &&
                 mouseY >= menuY && mouseY <= menuY + (6 * itemH) + 12)

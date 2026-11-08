@@ -104,6 +104,10 @@
               "target": "Package",
               "version": "[3.0.0, )"
             },
+            "LunarLabs.Fonts": {
+              "target": "Package",
+              "version": "[1.0.3, )"
+            },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",

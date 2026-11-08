@@ -35,6 +35,7 @@ public class VirtualFileSystem
             {
                 _isRealVfsMounted = true;
                 WriteFile(@"C:\installed.tag", "INSTALLED=1\nBOOT=HDD\n");
+                ScanHardDiskFat32();
             }
         }
         catch { }
@@ -45,20 +46,82 @@ public class VirtualFileSystem
     private void InitializeDefaultStructure()
     {
         _memoryDirs.Add(@"C:\");
-        _memoryDirs.Add(@"C:\Desktop");
-        _memoryDirs.Add(@"C:\Documents");
+        _memoryDirs.Add(@"C:\boot");
+        _memoryDirs.Add(@"C:\Downloads");
         _memoryDirs.Add(@"C:\System");
+        _memoryDirs.Add(@"C:\Documents");
+        _memoryDirs.Add(@"C:\Desktop");
         _memoryDirs.Add(@"C:\Programs");
+        _memoryDirs.Add(@"C:\limine");
+        _memoryDirs.Add(@"C:\EFI");
+        _memoryDirs.Add(@"C:\NybuOS");
+    }
+
+    private void ScanHardDiskFat32()
+    {
+        try
+        {
+            var hdd = HardDiskInstaller.FindTargetHardDisk();
+            if (hdd == null) return;
+
+            var fat32 = new DirectFat32(hdd, HardDiskInstaller.PartitionStartLba);
+
+            // 1. Lê raiz (Cluster 2)
+            fat32.ReadDirectoryEntries(2, out var rootFiles, out var rootDirs);
+            foreach (var d in rootDirs)
+            {
+                string path = @"C:\" + d;
+                _memoryDirs.Add(path);
+
+                // Lê subdiretório
+                uint cluster = fat32.FindDirectoryCluster(2, d);
+                if (cluster > 0)
+                {
+                    fat32.ReadDirectoryEntries(cluster, out var subFiles, out var subDirs);
+                    foreach (var sd in subDirs)
+                    {
+                        _memoryDirs.Add(path + "\\" + sd);
+                    }
+                    foreach (var sf in subFiles)
+                    {
+                        string filePath = path + "\\" + sf;
+                        if (!_memoryFiles.ContainsKey(filePath))
+                        {
+                            _memoryFiles[filePath] = "[Arquivo FAT32 em disco]";
+                        }
+                    }
+                }
+            }
+
+            foreach (var f in rootFiles)
+            {
+                string filePath = @"C:\" + f;
+                if (!_memoryFiles.ContainsKey(filePath))
+                {
+                    _memoryFiles[filePath] = "[Arquivo FAT32 em disco]";
+                }
+            }
+        }
+        catch { }
     }
 
     private void SyncFactoryFiles()
     {
+        // Arquivos de boot e kernel do sistema operacional
+        WriteFile(@"C:\boot\NybuOS.elf", "NybuOS 64-bit ELF Kernel Binary Executable");
+        WriteFile(@"C:\boot\limine.conf", "timeout: 3\n/NybuOS Purple\n    protocol: limine\n    kernel_path: boot():/boot/NybuOS.elf\n");
+        WriteFile(@"C:\boot\limine-bios.sys", "Limine BIOS Stage 3 Bootloader System");
+        WriteFile(@"C:\NybuOS.elf", "NybuOS 64-bit ELF Kernel Binary Executable (Root Image)");
+        WriteFile(@"C:\limine.conf", "timeout: 3\n/NybuOS Purple\n    protocol: limine\n    kernel_path: boot():/boot/NybuOS.elf\n");
+        WriteFile(@"C:\Downloads\info.txt", "Pasta oficial de downloads do NybuOS.\nTodos os arquivos baixados pelo aplicativo Download Central sao gravados nesta pasta.\n");
+
         WriteFile(@"C:\Documents\readme.txt", 
-            "Bem-vindo ao NybuOS 1.0!\n\n" +
+            "Bem-vindo ao NybuOS Purple!\n\n" +
             "Sistema Operacional grafico em C# para arquitetura x86_64.\n" +
             "Recursos integrados:\n" +
-            "- Window Manager com Z-Order e Tema Windows 95 Clássico\n" +
+            "- Window Manager com Z-Order e Tema macOS Frosted Glass\n" +
             "- Subsistema VFS com persistencia em FAT32\n" +
+            "- Download Central com suporte HTTP/HTTPS e assistente de atualizacao\n" +
             "- Gerenciador de Arquivos, Editor de Texto, Planilha, Calculadora e Terminal\n");
 
         WriteFile(@"C:\Documents\planilha.csv", 
@@ -70,23 +133,29 @@ public class VirtualFileSystem
 
         WriteFile(@"C:\System\config.sys", 
             "OS=NybuOS\n" +
-            "VERSION=1.0.0\n" +
+            "VERSION=Purple-1.2.0\n" +
             "ARCH=x86_64\n" +
             "GUI=True\n" +
+            "THEME=MacOS-FrostedGlass\n" +
             "SHELL=NybuShell\n");
 
         WriteFile(@"C:\Desktop\notas.txt", 
-            "Tarefas do NybuOS:\n" +
-            "1. Testar calculadora com operacoes aritmeticas\n" +
-            "2. Salvar planilha em disco\n" +
-            "3. Navegar pelas pastas no Explorer\n");
+            "Novidades do NybuOS Purple:\n" +
+            "1. Interface minimalista com vidro translucido (60%-75% opacidade)\n" +
+            "2. Novo wallpaper integrado em alta definicao\n" +
+            "3. Aplicativo Download Central para baixar qualquer arquivo via link HTTP/HTTPS\n" +
+            "4. Acesso direto a pasta C:\\boot com NybuOS.elf e C:\\Downloads\n");
     }
 
     public string NormalizePath(string path)
     {
         if (string.IsNullOrEmpty(path)) return @"C:\";
         string clean = path.Replace('/', '\\').Trim();
-        if (!clean.StartsWith("C:", StringComparison.OrdinalIgnoreCase) && !clean.StartsWith("0:", StringComparison.OrdinalIgnoreCase))
+        if (clean.StartsWith("0:", StringComparison.OrdinalIgnoreCase))
+        {
+            clean = "C:" + clean.Substring(2);
+        }
+        else if (!clean.StartsWith("C:", StringComparison.OrdinalIgnoreCase))
         {
             if (clean.StartsWith("\\"))
                 clean = "C:" + clean;
@@ -168,10 +237,42 @@ public class VirtualFileSystem
             try
             {
                 File.WriteAllText(p, content);
-                return true;
             }
             catch { }
         }
+
+        try
+        {
+            if (HardDiskInstaller.IsSystemInstalledOnHardDisk())
+            {
+                var hdd = HardDiskInstaller.FindTargetHardDisk();
+                if (hdd != null)
+                {
+                    var fat32 = new DirectFat32(hdd, HardDiskInstaller.PartitionStartLba);
+                    string[] parts = p.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+                    byte[] data = System.Text.Encoding.ASCII.GetBytes(content);
+                    if (parts.Length == 2)
+                    {
+                        fat32.UpdateFile(2, parts[1], parts[1], data);
+                    }
+                    else if (parts.Length >= 3)
+                    {
+                        string dirName = parts[1];
+                        string fileName = parts[2];
+                        uint dirCluster = fat32.FindDirectoryCluster(2, dirName);
+                        if (dirCluster == 0)
+                        {
+                            dirCluster = fat32.CreateDirectory(2, dirName.ToUpper());
+                        }
+                        if (dirCluster > 0)
+                        {
+                            fat32.UpdateFile(dirCluster, fileName, fileName, data);
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
 
         return true;
     }
@@ -194,10 +295,41 @@ public class VirtualFileSystem
             try
             {
                 File.WriteAllBytes(p, bytes);
-                return true;
             }
             catch { }
         }
+
+        try
+        {
+            if (HardDiskInstaller.IsSystemInstalledOnHardDisk())
+            {
+                var hdd = HardDiskInstaller.FindTargetHardDisk();
+                if (hdd != null)
+                {
+                    var fat32 = new DirectFat32(hdd, HardDiskInstaller.PartitionStartLba);
+                    string[] parts = p.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        fat32.UpdateFile(2, parts[1], parts[1], bytes);
+                    }
+                    else if (parts.Length >= 3)
+                    {
+                        string dirName = parts[1];
+                        string fileName = parts[2];
+                        uint dirCluster = fat32.FindDirectoryCluster(2, dirName);
+                        if (dirCluster == 0)
+                        {
+                            dirCluster = fat32.CreateDirectory(2, dirName.ToUpper());
+                        }
+                        if (dirCluster > 0)
+                        {
+                            fat32.UpdateFile(dirCluster, fileName, fileName, bytes);
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
 
         return true;
     }

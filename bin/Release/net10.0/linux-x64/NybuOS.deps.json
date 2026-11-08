@@ -16,6 +16,7 @@
           "Cosmos.Kernel.SourceGenerators": "3.0.95",
           "Cosmos.Kernel.System": "3.0.95",
           "Cosmos.Network.Http": "3.0.0",
+          "LunarLabs.Fonts": "1.0.3",
           "Cosmos.Kernel.HAL.Reference": "3.0.95.0",
           "Cosmos.Kernel.System.Reference": "3.0.95.0",
           "runtimepack.Microsoft.NETCore.App.Runtime.linux-x64": "10.0.13"
@@ -922,6 +923,14 @@
           }
         }
       },
+      "LunarLabs.Fonts/1.0.3": {
+        "runtime": {
+          "lib/netstandard2.0/LunarFonts.dll": {
+            "assemblyVersion": "1.0.3.0",
+            "fileVersion": "1.0.3.0"
+          }
+        }
+      },
       "Microsoft.CodeAnalysis.Common/4.14.0": {
         "runtime": {
           "lib/net9.0/Microsoft.CodeAnalysis.dll": {
@@ -1188,6 +1197,13 @@
       "sha512": "sha512-0jlOCwel0dH5FgB9eNBdNEgMzqrFehg5rQ/b3IWyuGvhchiM0nr3KSvCubccaV283uGitD/Yl1q8qUqTnLJmoQ==",
       "path": "cosmos.network.http/3.0.0",
       "hashPath": "cosmos.network.http.3.0.0.nupkg.sha512"
+    },
+    "LunarLabs.Fonts/1.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-rIk0RyKbobkslj+n8JiHPcgQs9rg6ZUMrL6jaDxDnK25MoDR7+FcV6HdYeixX6rSk1EQ1vP9nR3Mbei35AiggA==",
+      "path": "lunarlabs.fonts/1.0.3",
+      "hashPath": "lunarlabs.fonts.1.0.3.nupkg.sha512"
     },
     "Microsoft.CodeAnalysis.Common/4.14.0": {
       "type": "package",

@@ -297,6 +297,15 @@
           }
         }
       },
+      "LunarLabs.Fonts/1.0.3": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/LunarFonts.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.0/LunarFonts.dll": {}
+        }
+      },
       "Microsoft.CodeAnalysis.Analyzers/3.11.0": {
         "type": "package",
         "build": {
@@ -733,6 +742,15 @@
           "lib/net10.0/Cosmos.Network.Http.dll": {
             "related": ".xml"
           }
+        }
+      },
+      "LunarLabs.Fonts/1.0.3": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/LunarFonts.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.0/LunarFonts.dll": {}
         }
       },
       "Microsoft.CodeAnalysis.Analyzers/3.11.0": {
@@ -1338,6 +1356,19 @@
         "icon.png",
         "lib/net10.0/Cosmos.Network.Http.dll",
         "lib/net10.0/Cosmos.Network.Http.xml"
+      ]
+    },
+    "LunarLabs.Fonts/1.0.3": {
+      "sha512": "rIk0RyKbobkslj+n8JiHPcgQs9rg6ZUMrL6jaDxDnK25MoDR7+FcV6HdYeixX6rSk1EQ1vP9nR3Mbei35AiggA==",
+      "type": "package",
+      "path": "lunarlabs.fonts/1.0.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "lib/netstandard2.0/LunarFonts.dll",
+        "lunarlabs.fonts.1.0.3.nupkg.sha512",
+        "lunarlabs.fonts.nuspec"
       ]
     },
     "Microsoft.CodeAnalysis.Analyzers/3.11.0": {
@@ -2272,6 +2303,7 @@
       "Cosmos.Kernel.SourceGenerators >= 3.0.95",
       "Cosmos.Kernel.System >= 3.0.95",
       "Cosmos.Network.Http >= 3.0.0",
+      "LunarLabs.Fonts >= 1.0.3",
       "Microsoft.NET.ILLink.Tasks >= 10.0.13"
     ]
   },
@@ -2377,6 +2409,10 @@
           "Cosmos.Network.Http": {
             "target": "Package",
             "version": "[3.0.0, )"
+          },
+          "LunarLabs.Fonts": {
+            "target": "Package",
+            "version": "[1.0.3, )"
           },
           "Microsoft.NET.ILLink.Tasks": {
             "suppressParent": "All",

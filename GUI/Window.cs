@@ -97,11 +97,13 @@ public abstract class Window
         display.DrawTrafficLight(X + 66, Y + 19, 7, Theme.MaximizeButton, Theme.MaximizeButtonBorder, false, '+');
 
         // 4. Título da Janela centralizado
-        int textW = Title.Length * CosmosNativeFont.Width;
+        int textW = display.MeasureString(Title);
+        int textH = TrueTypeRenderer.IsLoaded ? TrueTypeRenderer.DefaultHeight : CosmosNativeFont.Height;
         int titleX = X + Math.Max(84, (Width - textW) / 2);
-        int titleY = Y + (TitleBarHeight - CosmosNativeFont.Height) / 2;
+        int titleY = Y + (TitleBarHeight - textH) / 2;
 
-        int maxChars = Math.Max(0, (Width - 160) / CosmosNativeFont.Width);
+        int charW = TrueTypeRenderer.IsLoaded ? 11 : CosmosNativeFont.Width;
+        int maxChars = Math.Max(0, (Width - 160) / charW);
         string displayTitle = Title;
         if (displayTitle.Length > maxChars && maxChars > 3)
         {

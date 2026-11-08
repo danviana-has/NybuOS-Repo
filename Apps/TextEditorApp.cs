@@ -81,8 +81,8 @@ public class TextEditorApp : Window
 
         // Renderiza o texto com quebra de linha visual
         string text = _textBuffer.ToString();
-        int charW = CosmosNativeFont.Width;
-        int charH = CosmosNativeFont.Height;
+        int charW = TrueTypeRenderer.IsLoaded ? 11 : CosmosNativeFont.Width;
+        int charH = TrueTypeRenderer.IsLoaded ? TrueTypeRenderer.DefaultHeight : CosmosNativeFont.Height;
         int maxCharsPerLine = (cw - 20) / charW;
         int tx = cx + 8;
         int ty = editY + 6;

@@ -23,6 +23,7 @@ public static class IconResources
     public static IconImage TerminalDock { get; private set; } = null!;
     public static IconImage InstallerDock { get; private set; } = null!;
     public static IconImage UpdaterDock { get; private set; } = null!;
+    public static IconImage DownloadCentralDock { get; private set; } = null!;
     public static IconImage AboutDock { get; private set; } = null!;
     public static IconImage TrashDock { get; private set; } = null!;
     public static IconImage ShutdownDock { get; private set; } = null!;
@@ -48,6 +49,7 @@ public static class IconResources
     public static IconImage TerminalIcon { get; private set; } = null!;
     public static IconImage InstallerIcon { get; private set; } = null!;
     public static IconImage UpdaterIcon { get; private set; } = null!;
+    public static IconImage DownloadCentralIcon { get; private set; } = null!;
     public static IconImage AboutIcon { get; private set; } = null!;
     public static IconImage ShutdownIcon { get; private set; } = null!;
 
@@ -66,6 +68,7 @@ public static class IconResources
     public static IconImage Spreadsheet16 { get; private set; } = null!;
     public static IconImage Installer16 { get; private set; } = null!;
     public static IconImage Updater16 { get; private set; } = null!;
+    public static IconImage DownloadCentral16 { get; private set; } = null!;
     public static IconImage Help16 { get; private set; } = null!;
 
     // Ícones de 32x32 / 48x48 para Área de Trabalho
@@ -84,6 +87,7 @@ public static class IconResources
     public static IconImage Terminal32 { get; private set; } = null!;
     public static IconImage Installer32 { get; private set; } = null!;
     public static IconImage Updater32 { get; private set; } = null!;
+    public static IconImage DownloadCentral32 { get; private set; } = null!;
     public static IconImage Recycle32 { get; private set; } = null!;
 
     // Logo especial de Splash Boot Screen (64x64)
@@ -115,6 +119,7 @@ public static class IconResources
         TerminalDock = LoadPng(EmbeddedIconData.terminal, 60, CreateTerminalIcon);
         InstallerDock = LoadPng(EmbeddedIconData.InstallerApp, 60, CreateInstallerIcon);
         UpdaterDock = CreateUpdaterIcon(60);
+        DownloadCentralDock = CreateDownloadCentralIcon(60);
         AboutDock = LoadPng(EmbeddedIconData.AboutApp, 60, CreateAboutIcon);
         TrashDock = CreateTrashIcon(60);
         ShutdownDock = CreatePowerIcon(60);
@@ -139,6 +144,7 @@ public static class IconResources
         TerminalIcon = LoadPng(EmbeddedIconData.terminal, 24, CreateTerminalIcon);
         InstallerIcon = LoadPng(EmbeddedIconData.InstallerApp, 24, CreateInstallerIcon);
         UpdaterIcon = CreateUpdaterIcon(24);
+        DownloadCentralIcon = CreateDownloadCentralIcon(24);
         AboutIcon = LoadPng(EmbeddedIconData.AboutApp, 24, CreateAboutIcon);
         ShutdownIcon = CreatePowerIcon(24);
 
@@ -157,6 +163,7 @@ public static class IconResources
         Spreadsheet16 = LoadPng(EmbeddedIconData.spreadsheet, 16, CreateSpreadsheetIcon);
         Installer16 = LoadPng(EmbeddedIconData.InstallerApp, 16, CreateInstallerIcon);
         Updater16 = CreateUpdaterIcon(16);
+        DownloadCentral16 = CreateDownloadCentralIcon(16);
         Help16 = LoadPng(EmbeddedIconData.AboutApp, 16, CreateAboutIcon);
 
         // 5. Ícones da Área de Trabalho (48x48)
@@ -175,6 +182,7 @@ public static class IconResources
         Terminal32 = LoadPng(EmbeddedIconData.terminal, 48, CreateTerminalIcon);
         Installer32 = LoadPng(EmbeddedIconData.InstallerApp, 48, CreateInstallerIcon);
         Updater32 = CreateUpdaterIcon(48);
+        DownloadCentral32 = CreateDownloadCentralIcon(48);
         Recycle32 = CreateTrashIcon(48);
 
         // 6. Boot Logo (64x64)
@@ -719,6 +727,51 @@ public static class IconResources
             img.SetPixel(cx - d, cy + arrowH / 2 - d, 0xFF38BDF8);
             img.SetPixel(cx + d, cy + arrowH / 2 - d, 0xFF38BDF8);
             img.SetPixel(cx - 1 - d, cy + arrowH / 2 - d, 0xFF38BDF8);
+        }
+
+        return img;
+    }
+
+    public static IconImage CreateDownloadCentralIcon(int size)
+    {
+        var img = CreateSquircleBase(size, Color.FromArgb(147, 51, 234), Color.FromArgb(88, 28, 135));
+        int cx = size / 2;
+        int cy = size / 2;
+
+        int trayW = size * 48 / 100;
+        int trayY = cy + (size * 18 / 100);
+        int trayH = Math.Max(2, size * 10 / 100);
+
+        for (int x = cx - trayW / 2; x <= cx + trayW / 2; x++)
+        {
+            img.SetPixel(x, trayY, 0xFFFFFFFF);
+            img.SetPixel(x, trayY + 1, 0xFFE9D5FF);
+        }
+        for (int y = trayY - trayH; y <= trayY; y++)
+        {
+            img.SetPixel(cx - trayW / 2, y, 0xFFFFFFFF);
+            img.SetPixel(cx - trayW / 2 + 1, y, 0xFFFFFFFF);
+            img.SetPixel(cx + trayW / 2, y, 0xFFFFFFFF);
+            img.SetPixel(cx + trayW / 2 - 1, y, 0xFFFFFFFF);
+        }
+
+        int arrowTop = cy - (size * 25 / 100);
+        int arrowBottom = cy + (size * 8 / 100);
+        for (int y = arrowTop; y <= arrowBottom; y++)
+        {
+            img.SetPixel(cx - 1, y, 0xFFFFFFFF);
+            img.SetPixel(cx, y, 0xFFFFFFFF);
+            img.SetPixel(cx + 1, y, 0xFFFFFFFF);
+        }
+
+        int headSize = Math.Max(3, size * 16 / 100);
+        for (int d = 1; d <= headSize; d++)
+        {
+            for (int w = 0; w <= d; w++)
+            {
+                img.SetPixel(cx - w, arrowBottom - (headSize - d), 0xFF38BDF8);
+                img.SetPixel(cx + w, arrowBottom - (headSize - d), 0xFF38BDF8);
+            }
         }
 
         return img;
